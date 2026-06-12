@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SettleIn | Student Accommodation Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="splash-screen">
+    <div class="splash-content">
+        <div class="splash-logo">Settle<span>In</span></div>
+        <div class="splash-loader-bar">
+            <div class="splash-progress-line"></div>
+        </div>
+    </div>
+</div>
+
+    <header class="main-header slide-down">
+        <div class="logo" data-target="view-home">Settle<span>In</span></div>
+      <nav class="nav-links">
+            <a href="#" data-target="view-home">Home</a>
+            <a href="#" data-target="view-listings">Find Rooms</a>
+            <a href="#" data-target="view-landlord">Landlord Portal</a>
+            <a href="#" data-target="view-auth" class="auth-nav-btn">Sign In</a>
+        </nav>
+    </header>
+
+    <main id="app-root">
+
+        <section id="view-home" class="view hidden fade-in">
+            <div class="hero-section">
+                <h1>Find Safe, Verified Student Housing Near Campus</h1>
+                <p>Skip the brokers. Avoid scams. Discover verified student hostels and bedsitters in Nairobi.</p>
+                <div class="search-card float-up">
+                    <select id="home-campus-select">
+                        <option value="all">Select Institution...</option>
+                        <option value="strathmore">Strathmore University</option>
+                        <option value="uon">University of Nairobi</option>
+                        <option value="ku">Kenyatta University</option>
+                        <option value="jkuat">JKUAT</option>
+                    </select>
+                    <button id="btn-home-search" class="interactive-btn">Search Rooms</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-listings" class="view hidden fade-in">
+            <div class="view-container split-layout">
+                <aside class="filter-sidebar slide-right">
+                    <h3>Filter Properties</h3>
+                    <div class="filter-group">
+                        <label>Target University</label>
+                        <select id="f-campus">
+                            <option value="all">All Campuses</option>
+                            <option value="strathmore">Strathmore University</option>
+                            <option value="uon">University of Nairobi</option>
+                            <option value="ku">Kenyatta University</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Accommodation Layout</label>
+                        <select id="f-type">
+                            <option value="all">All Room Layouts</option>
+                            <option value="Bedsitter">Bedsitter</option>
+                            <option value="Hostel Room">Hostel Room</option>
+                            <option value="Shared Apartment">Shared Apartment</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Maximum Price (KES)</label>
+                        <input type="number" id="f-budget" placeholder="e.g. 15000">
+                    </div>
+                    <div class="filter-group checkbox-group">
+                        <input type="checkbox" id="f-wifi">
+                        <label for="f-wifi">Requires Wi-Fi Access</label>
+                    </div>
+                </aside>
+
+                <section class="listings-area">
+                    <h2>Available Verified Units</h2>
+                    <div id="loading-spinner" class="hidden">Searching database...</div>
+                    <div class="listings-grid" id="listings-target-grid">
+                        </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="view-detail" class="view hidden fade-in">
+            <div class="view-container">
+                <button class="back-btn interactive-btn" data-target="view-listings">← Return to Search</button>
+                <div class="detail-card slide-up">
+                    <div class="detail-image-placeholder animate-pulse">
+                        [ Property Image Gallery ]
+                    </div>
+                    <h1 id="detail-title"></h1>
+                    <p id="detail-price" class="price-tag"></p>
+                    
+                    <div class="detail-grid">
+                        <div>
+                            <h3>Property Context</h3>
+                            <p><strong>Layout:</strong> <span id="detail-type"></span></p>
+                            <p><strong>Proximity:</strong> <span id="detail-distance"></span></p>
+                            <p><strong>Manager:</strong> <span id="detail-landlord"></span></p>
+                        </div>
+                        <div>
+                            <h3>Utility Infrastructure</h3>
+                            <div id="detail-amenities" class="amenities-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="mpesa-card">
+                        <h3>Instantly Secure Room via Express Booking</h3>
+                        <p>Submit your details to trigger an instant M-Pesa secure checkout reservation prompt.</p>
+                        <div class="input-group">
+                            <input type="tel" id="booking-phone" placeholder="Saf. Mobile (e.g. 0712345678)">
+                            <button id="btn-book-room" class="interactive-btn mpesa-btn">Initiate Booking</button>
+                        </div>
+                    </div>
+
+                    <div class="reviews-section">
+                        <h3>Student Reviews & Transparency</h3>
+                        <div id="reviews-list-container"></div>
+                        
+                        <div class="review-form-card">
+                            <h4>Share Your Experience</h4>
+                            <div class="input-group">
+                                <input type="text" id="rev-name" placeholder="Your Name">
+                                <select id="rev-rating">
+                                    <option value="5">5 Stars</option>
+                                    <option value="4">4 Stars</option>
+                                    <option value="3">3 Stars</option>
+                                </select>
+                            </div>
+                            <textarea id="rev-comment" rows="2" placeholder="Detail the security, water reliability, Wi-Fi speeds..."></textarea>
+                            <button id="btn-submit-review" class="interactive-btn">Post Review</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-landlord" class="view hidden fade-in">
+            <div class="view-container">
+                <div class="form-card slide-up">
+                    <h2>Register Property Verification</h2>
+                    <p>Join SettleIn as a verified landlord. Provide unit details to reach thousands of Nairobi students.</p>
+                    
+                    <form id="landlord-add-form">
+                        <div class="form-grid">
+                            <div class="full-width">
+                                <label>Property Name</label>
+                                <input type="text" id="p-title" required>
+                            </div>
+                            <div>
+                                <label>Nearest Core Campus</label>
+                                <select id="p-campus" required>
+                                    <option value="strathmore">Strathmore University</option>
+                                    <option value="uon">University of Nairobi</option>
+                                    <option value="ku">Kenyatta University</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Room Layout Category</label>
+                                <select id="p-type" required>
+                                    <option value="Bedsitter">Bedsitter</option>
+                                    <option value="Hostel Room">Hostel Room</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Monthly Base Rent (KES)</label>
+                                <input type="number" id="p-price" required>
+                            </div>
+                            <div>
+                                <label>Distance to Campus</label>
+                                <input type="text" id="p-dist" placeholder="e.g. 0.3km" required>
+                            </div>
+                            <div>
+                                <label>Manager Name</label>
+                                <input type="text" id="p-landlord" required>
+                            </div>
+                            <div>
+                                <label>Contact Mobile</label>
+                                <input type="tel" id="p-contact" required>
+                            </div>
+                            <div class="full-width">
+                                <label>Infrastructure Amenities (Comma Separated)</label>
+                                <input type="text" id="p-amenities" placeholder="e.g. Wi-Fi, Borehole Water">
+                            </div>
+                        </div>
+                        <button type="submit" class="interactive-btn full-width-btn">Publish Verified Listing</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <section id="view-auth" class="view active fade-in">
+            <div class="view-container auth-split">
+                
+                <div class="mascot-container">
+                    <svg id="cartoon-mascot" viewBox="0 0 200 220" width="200" height="220">
+                        <ellipse cx="100" cy="205" rx="50" ry="8" fill="#e2e8f0"/>
+                        <g id="mascot-body-group">
+                            <path d="M40 110 L100 50 L160 110 L150 190 A10 10 0 0 1 140 200 L60 200 A10 10 0 0 1 50 190 Z" fill="#3a86ff" stroke="#111111" stroke-width="6" stroke-linejoin="round"/>
+                            <path d="M30 115 L100 45 L170 115" fill="none" stroke="#111111" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="65" cy="145" r="10" fill="#ffb5a7" opacity="0.8" />
+                            <circle cx="135" cy="145" r="10" fill="#ffb5a7" opacity="0.8" />
+                            <path d="M92 150 Q100 158 108 150" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="round"/>
+                            
+                            <circle cx="75" cy="120" r="16" fill="#ffffff" stroke="#111111" stroke-width="4"/>
+                            <g id="mascot-pupil-left">
+                                <circle cx="75" cy="120" r="7" fill="#111111"/>
+                                <circle cx="72" cy="117" r="2.5" fill="#ffffff"/>
+                            </g>
+
+                            <circle cx="125" cy="120" r="16" fill="#ffffff" stroke="#111111" stroke-width="4"/>
+                            <g id="mascot-pupil-right">
+                                <circle cx="125" cy="120" r="7" fill="#111111"/>
+                                <circle cx="122" cy="117" r="2.5" fill="#ffffff"/>
+                            </g>
+
+                            <!-- NEW: Cartoon Hands for Password Privacy Cover -->
+                            <circle id="mascot-hand-left" cx="75" cy="120" r="19" fill="#2563eb" stroke="#111111" stroke-width="4"/>
+                            <circle id="mascot-hand-right" cx="125" cy="120" r="19" fill="#2563eb" stroke="#111111" stroke-width="4"/>
+                        </g>
+                    </svg>
+                    <p class="mascot-speech-bubble">I'm watching your cursor!</p>
+                </div>
+
+                <div class="auth-card slide-up">
+                    <div class="auth-toggle-header">
+                        <button id="auth-toggle-signin" class="toggle-tab active">Login</button>
+                        <button id="auth-toggle-signup" class="toggle-tab">Create Account</button>
+                    </div>
+
+                    <form id="form-signin" class="auth-form">
+                        <div class="form-group-alt">
+                            <label>Student / Manager Email</label>
+                            <input type="email" placeholder="name@strathmore.edu" required>
+                        </div>
+                        <div class="form-group-alt" style="margin-top: 1rem;">
+                            <label>Password</label>
+                            <input type="password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="interactive-btn full-width-btn" style="margin-top: 1.5rem;">Access Portal</button>
+                    </form>
+
+                    <form id="form-signup" class="auth-form hidden">
+                        <div class="form-grid" style="grid-template-columns: 1fr; gap: 1rem; margin-bottom:0;">
+                            <div>
+                                <label>Full Name</label>
+                                <input type="text" placeholder="e.g. Gift Gicheru" required>
+                            </div>
+                            <div>
+                                <label>Account Classification Type</label>
+                                <select required>
+                                    <option value="student">Student Searching Housing</option>
+                                    <option value="landlord">Property Manager / Landlord</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Email Address</label>
+                                <input type="email" placeholder="yourname@domain.com" required>
+                            </div>
+                            <div>
+                                <label>Secure Access Password</label>
+                                <input type="password" placeholder="Minimum 8 Characters" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="interactive-btn full-width-btn" style="margin-top: 1.5rem;">Register Account</button>
+                    </form>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <div id="toast-notification" class="toast hidden"></div>
+
+    <template id="tmpl-property-card">
+        <div class="card interactive-card">
+            <div class="card-img-placeholder">
+                <span class="img-text">Photo</span>
+                <span class="verified-badge hidden">Verified</span>
+            </div>
+            <div class="card-body">
+                <div class="card-price"></div>
+                <h3 class="card-title"></h3>
+                <div class="card-meta"></div>
+                <div class="card-amenities"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tmpl-review">
+        <div class="review-item slide-right">
+            <div class="review-header">
+                <strong class="review-author"></strong>
+                <span class="review-stars"></span>
+            </div>
+            <p class="review-text"></p>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
