@@ -47,6 +47,35 @@ class AppController {
 
     // --- EVENT LISTENERS ---
     setupEventListeners() {
+
+        // --- HAMBURGER MOBILE NAV ---
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const mainNav = document.getElementById('main-nav');
+        const navOverlay = document.getElementById('nav-overlay');
+
+        const closeMobileNav = () => {
+            hamburgerBtn?.classList.remove('open');
+            mainNav?.classList.remove('nav-open');
+            navOverlay?.classList.remove('overlay-visible');
+            hamburgerBtn?.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        };
+
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', () => {
+                const isOpen = mainNav.classList.toggle('nav-open');
+                hamburgerBtn.classList.toggle('open', isOpen);
+                navOverlay?.classList.toggle('overlay-visible', isOpen);
+                hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+            });
+        }
+        if (navOverlay) navOverlay.addEventListener('click', closeMobileNav);
+        // Close mobile nav on any nav link click
+        document.querySelectorAll('#main-nav a').forEach(link => {
+            link.addEventListener('click', closeMobileNav);
+        });
+
         // --- Authentication View Tab Switching Listeners ---
         const btnSignInTab = document.getElementById('auth-toggle-signin');
         const btnSignUpTab = document.getElementById('auth-toggle-signup');
@@ -60,7 +89,7 @@ class AppController {
                 formSignIn.classList.remove('hidden');
                 formSignUp.classList.add('hidden');
                 const speech = document.querySelector('.mascot-speech-bubble');
-                if (speech) speech.innerText = "Welcome back! Let's log in!";
+                if (speech) speech.innerHTML = '👋 Welcome back! Log in!';
             });
 
             btnSignUpTab.addEventListener('click', () => {
@@ -69,7 +98,7 @@ class AppController {
                 formSignUp.classList.remove('hidden');
                 formSignIn.classList.add('hidden');
                 const speech = document.querySelector('.mascot-speech-bubble');
-                if (speech) speech.innerText = "Awesome! Let's make a new profile!";
+                if (speech) speech.innerHTML = '🎉 Let’s create your profile!';
             });
 
             formSignIn.addEventListener('submit', (e) => {
@@ -120,6 +149,7 @@ class AppController {
         // Home Search Button
         const btnHomeSearch = document.getElementById('btn-home-search');
         if (btnHomeSearch) {
+            btnHomeSearch.addEventListener('mousedown', (e) => this.addRipple(btnHomeSearch, e));
             btnHomeSearch.addEventListener('click', () => {
                 const val = document.getElementById('home-campus-select').value;
                 document.getElementById('f-campus').value = val;
@@ -128,13 +158,36 @@ class AppController {
         }
 
         // Filters auto-update
-        const filterIds = ['f-campus', 'f-type', 'f-budget', 'f-wifi'];
+        const filterIds = ['f-campus', 'f-type', 'f-budget', 'f-wifi', 'f-search', 'f-sort'];
         filterIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', () => this.renderListings());
+                el.addEventListener('change', () => this.renderListings());
             }
         });
+
+        // Clear Filters Button
+        const btnClearFilters = document.getElementById('btn-clear-filters');
+        if (btnClearFilters) {
+            btnClearFilters.addEventListener('click', () => {
+                const el = (id) => document.getElementById(id);
+                const campus = el('f-campus'); if (campus) campus.value = 'all';
+                const type = el('f-type'); if (type) type.value = 'all';
+                const budget = el('f-budget'); if (budget) budget.value = '';
+                const wifi = el('f-wifi'); if (wifi) wifi.checked = false;
+                const search = el('f-search'); if (search) search.value = '';
+                const sort = el('f-sort'); if (sort) sort.value = 'default';
+                this.renderListings();
+            });
+        }
+
+        // Apply Filters Button (mobile-friendly)
+        const btnApplyFilters = document.getElementById('btn-apply-filters');
+        if (btnApplyFilters) {
+            btnApplyFilters.addEventListener('click', () => this.renderListings());
+        }
+
 
         // Forms and Actions
         const landlordForm = document.getElementById('landlord-add-form');
@@ -171,41 +224,121 @@ class AppController {
                 if (mascotElement) mascotElement.classList.remove('covering-eyes');
                 if (speechBubble) {
                     const isSignUp = document.getElementById('auth-toggle-signup')?.classList.contains('active');
-                    speechBubble.innerText = isSignUp ? "Awesome! Let's make a new profile!" : "Welcome back! Let's log in!";
+                    speechBubble.innerHTML = isSignUp ? '🎉 Let’s create your profile!' : '👋 Welcome back! Log in!';
                 }
             });
         });
+
+        // --- HOME PAGE INTERACTIONS ---
+
+        // Featured card click-to-detail
+        document.querySelectorAll('.feat-card[data-prop-id]').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.heart-btn')) return;
+                this.loadDetailView(card.dataset.propId);
+            });
+        });
+
+        // Heart toggle — featured grid
+        document.querySelectorAll('.feat-card .heart-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleHeart(btn);
+            });
+        });
+
+        // Heart toggle — listings grid (event delegation)
+        const listingsGrid = document.getElementById('listings-target-grid');
+        if (listingsGrid) {
+            listingsGrid.addEventListener('click', (e) => {
+                const heartBtn = e.target.closest('.heart-btn');
+                if (heartBtn) {
+                    e.stopPropagation();
+                    this.toggleHeart(heartBtn);
+                }
+            });
+        }
+
+        // Quick Login button
+        const btnQuickLogin = document.getElementById('btn-quick-login');
+        if (btnQuickLogin) {
+            btnQuickLogin.addEventListener('click', () => {
+                this.showToast('Successfully authenticated student access session.');
+                this.switchView('view-home');
+            });
+        }
+
+        // Home mascot password cover
+        const qlPassword = document.getElementById('ql-password');
+        const homeMascotSvg = document.getElementById('home-mascot-svg');
+        if (qlPassword && homeMascotSvg) {
+            const hmSpeech = document.querySelector('.home-speech-bubble');
+            qlPassword.addEventListener('focus', () => {
+                homeMascotSvg.classList.add('covering-eyes-home');
+                if (hmSpeech) hmSpeech.innerText = 'Privacy mode! Not looking! 🙈';
+                const pL = document.getElementById('home-pupil-left');
+                const pR = document.getElementById('home-pupil-right');
+                if (pL) pL.style.transform = 'translate(0px,0px)';
+                if (pR) pR.style.transform = 'translate(0px,0px)';
+            });
+            qlPassword.addEventListener('blur', () => {
+                homeMascotSvg.classList.remove('covering-eyes-home');
+                if (hmSpeech) hmSpeech.innerText = 'Ready to find your perfect room! 🏠';
+            });
+        }
     }
 
     updateMascotEyes() {
-        // Run coordinates tracking logic only if auth screen view is visible to preserve resources
-        if (this.currentViewId !== 'view-auth') {
-            const authSection = document.getElementById('view-auth');
-            if (authSection && authSection.classList.contains('hidden')) return;
+        // Auth mascot eye tracking
+        if (this.currentViewId === 'view-auth') {
+            const mascotEl = document.getElementById('cartoon-mascot');
+            if (mascotEl && !mascotEl.classList.contains('covering-eyes')) {
+                const pL = document.getElementById('mascot-pupil-left');
+                const pR = document.getElementById('mascot-pupil-right');
+                if (pL) this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pL, 75, 120);
+                if (pR) this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pR, 125, 120);
+            }
         }
+        // Home mascot eye tracking
+        if (this.currentViewId === 'view-home') {
+            const hm = document.getElementById('home-mascot-svg');
+            if (hm && !hm.classList.contains('covering-eyes-home')) {
+                const pL = document.getElementById('home-pupil-left');
+                const pR = document.getElementById('home-pupil-right');
+                if (pL) this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pL, 75, 120);
+                if (pR) this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pR, 125, 120);
+            }
+        }
+    }
 
-        // PAUSE tracking if the eyes are currently covered
-        const mascotEl = document.getElementById('cartoon-mascot');
-        if (mascotEl && mascotEl.classList.contains('covering-eyes')) return;
+    toggleHeart(btn) {
+        const isFilled = btn.innerText.trim() === '❤️';
+        btn.innerText = isFilled ? '🤍' : '❤️';
+        btn.classList.remove('heart-bounce');
+        void btn.offsetWidth;
+        btn.classList.add('heart-bounce');
+        setTimeout(() => btn.classList.remove('heart-bounce'), 500);
+    }
 
-        const pupilLeft = document.getElementById('mascot-pupil-left');
-        const pupilRight = document.getElementById('mascot-pupil-right');
-        if (!pupilLeft || !pupilRight) return;
-
-        // Compute exact relative tracking center point vectors for each eye structure ring
-        // Using Left Eye default position absolute center mapping vector coords: (x:75, y:120)
-        this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pupilLeft, 75, 120);
-        this.calculateEyeGazeTransform(this.lastMousePos.x, this.lastMousePos.y, pupilRight, 125, 120);
+    addRipple(btn, e) {
+        const diameter = Math.max(btn.clientWidth, btn.clientHeight) * 2;
+        const radius = diameter / 2;
+        const rect = btn.getBoundingClientRect();
+        const circle = document.createElement('span');
+        circle.style.cssText = `width:${diameter}px;height:${diameter}px;left:${e.clientX - rect.left - radius}px;top:${e.clientY - rect.top - radius}px;position:absolute;border-radius:50%;background:rgba(255,255,255,0.35);animation:rippleEffect 0.65s ease-out forwards;pointer-events:none;`;
+        btn.appendChild(circle);
+        setTimeout(() => circle.remove(), 700);
     }
 
     // --- RENDER LOGIC (Using HTML <template> tags) ---
     renderListings() {
         const grid = document.getElementById('listings-target-grid');
         const spinner = document.getElementById('loading-spinner');
+        const countEl = document.getElementById('listings-result-count');
         if (!grid) return;
         
         grid.innerHTML = "";
-        if (spinner) spinner.classList.remove('hidden'); // Show loading simulation
+        if (spinner) spinner.classList.remove('hidden');
 
         setTimeout(() => {
             if (spinner) spinner.classList.add('hidden');
@@ -214,17 +347,31 @@ class AppController {
             const fType = document.getElementById('f-type')?.value || 'all';
             const fBudget = document.getElementById('f-budget')?.value;
             const fWifi = document.getElementById('f-wifi')?.checked;
+            const fSearch = (document.getElementById('f-search')?.value || '').toLowerCase().trim();
+            const fSort = document.getElementById('f-sort')?.value || 'default';
 
-            const filtered = this.getDB().filter(item => {
+            let filtered = this.getDB().filter(item => {
                 if (fCampus !== 'all' && item.campus !== fCampus) return false;
                 if (fType !== 'all' && item.type !== fType) return false;
                 if (fBudget && item.price > parseInt(fBudget)) return false;
                 if (fWifi && !item.amenities.some(a => a.toLowerCase().includes('wi-fi'))) return false;
+                if (fSearch && !item.title.toLowerCase().includes(fSearch) &&
+                    !item.campus.toLowerCase().includes(fSearch) &&
+                    !item.type.toLowerCase().includes(fSearch)) return false;
                 return true;
             });
 
+            // Sort
+            if (fSort === 'price-asc') filtered.sort((a, b) => a.price - b.price);
+            else if (fSort === 'price-desc') filtered.sort((a, b) => b.price - a.price);
+
+            // Update result count
+            if (countEl) {
+                countEl.innerHTML = `Showing <strong>${filtered.length}</strong> verified ${filtered.length === 1 ? 'unit' : 'units'}`;
+            }
+
             if (filtered.length === 0) {
-                grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--gray);">No verified units match your criteria.</p>`;
+                grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;"><p style="color:var(--gray);font-size:1rem;">No verified units match your criteria.</p><p style="color:var(--gray);font-size:0.85rem;margin-top:0.5rem;">Try adjusting your filters or clearing them all.</p></div>`;
                 return;
             }
 
@@ -232,17 +379,15 @@ class AppController {
             if (!template) return;
 
             filtered.forEach((item, index) => {
-                // Clone the template purely
                 const clone = template.content.cloneNode(true);
                 const card = clone.querySelector('.card');
                 
-                // Add cascade animation delay
                 card.style.animation = `slideUp 0.4s ease forwards ${index * 0.1}s`;
                 card.style.opacity = '0';
 
                 if (item.verified) clone.querySelector('.verified-badge').classList.remove('hidden');
                 
-                clone.querySelector('.card-price').innerText = `KES ${item.price.toLocaleString()}`;
+                clone.querySelector('.card-price').innerText = `KES ${item.price.toLocaleString()}/mo`;
                 clone.querySelector('.card-title').innerText = item.title;
                 clone.querySelector('.card-meta').innerText = `${item.type} • ${item.distance} from ${item.campus.toUpperCase()}`;
                 
@@ -254,11 +399,10 @@ class AppController {
                     amContainer.appendChild(span);
                 });
 
-                // Attach click event for detail view
                 card.addEventListener('click', () => this.loadDetailView(item.id));
                 grid.appendChild(clone);
             });
-        }, 400); // 400ms artificial loading delay for interactivity
+        }, 400);
     }
 
     loadDetailView(id) {
