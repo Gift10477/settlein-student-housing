@@ -1,0 +1,200 @@
+/* ============================================================
+   SettleIn Design Tokens — variables.css
+   All colour, spacing, and shadow tokens live here.
+   Light mode is the default (:root).
+   Dark mode applies via:
+     - @media (prefers-color-scheme: dark)  — auto / device setting
+     - [data-theme="dark"]                  — manual toggle override
+     - [data-theme="light"]                 — forces light regardless
+   ============================================================ */
+
+/* ─── Light Mode (default) ─── */
+:root {
+  /* Brand */
+  --primary:        #3a86ff;
+  --primary-dark:   #2563eb;
+  --primary-light:  #eef4ff;
+  --success:        #10b981;
+  --premium:        #a855f7;
+  --premium-light:  #f3e8ff;
+  --alert:          #ff007f;
+  --star:           #eab308;
+  --emerald-light:  #d1fae5;
+
+  /* Surfaces */
+  --bg-page:        #f5f7fa;
+  --bg-card:        #ffffff;
+  --bg-header:      #ffffff;
+  --bg-sidebar:     #ffffff;
+  --bg-input:       #f5f7fa;
+  --bg-tag:         #f5f7fa;
+  --bg-overlay:     rgba(0, 0, 0, 0.45);
+
+  /* Text */
+  --text-primary:   #111111;
+  --text-secondary: #666666;
+  --text-muted:     #94a3b8;
+  --text-on-brand:  #ffffff;
+
+  /* Borders */
+  --border:         #e2e8f0;
+
+  /* Shadows */
+  --shadow:         0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-hover:   0 15px 30px -5px rgba(0, 0, 0, 0.10);
+  --shadow-deep:    0 20px 40px rgba(0, 0, 0, 0.06);
+  --shadow-card:    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* Hero gradient stops */
+  --hero-start:     #030b1a;
+  --hero-mid:       #0a1f4a;
+  --hero-end:       #1a5ab8;
+
+  /* Mascot/login split background */
+  --split-from:     #f0f4ff;
+  --split-via:      #e8f0fe;
+  --split-to:       #f0e8ff;
+
+  /* Featured section background */
+  --featured-bg:    #ffffff;
+
+  /* Radius */
+  --radius:         12px;
+  --radius-xl:      16px;
+  --radius-pill:    100px;
+
+  /* Transitions */
+  --transition:     all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Dark Mode — Auto (follows device setting) ─── */
+@media (prefers-color-scheme: dark) {
+  /* Only apply when no explicit manual override is set */
+  :root:not([data-theme="light"]) {
+    --primary:        #58a6ff;
+    --primary-dark:   #1f6feb;
+    --primary-light:  #1c2d3f;
+    --success:        #3fb950;
+    --premium:        #c084fc;
+    --premium-light:  #2d1f3f;
+    --alert:          #ff4da6;
+    --star:           #d29922;
+    --emerald-light:  #0d2f1e;
+
+    --bg-page:        #0d1117;
+    --bg-card:        #161b22;
+    --bg-header:      #161b22;
+    --bg-sidebar:     #161b22;
+    --bg-input:       #0d1117;
+    --bg-tag:         #21262d;
+    --bg-overlay:     rgba(0, 0, 0, 0.65);
+
+    --text-primary:   #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted:     #484f58;
+    --text-on-brand:  #ffffff;
+
+    --border:         #30363d;
+
+    --shadow:         0 4px 6px -1px rgba(0, 0, 0, 0.30);
+    --shadow-hover:   0 15px 30px -5px rgba(0, 0, 0, 0.40);
+    --shadow-deep:    0 20px 40px rgba(0, 0, 0, 0.25);
+    --shadow-card:    0 2px 8px rgba(0, 0, 0, 0.30);
+
+    --hero-start:     #010409;
+    --hero-mid:       #050d1e;
+    --hero-end:       #0a1f4a;
+
+    --split-from:     #0d1117;
+    --split-via:      #111827;
+    --split-to:       #1a1033;
+
+    --featured-bg:    #0d1117;
+  }
+}
+
+/* ─── Dark Mode — Manual override ─── */
+[data-theme="dark"] {
+  --primary:        #58a6ff;
+  --primary-dark:   #1f6feb;
+  --primary-light:  #1c2d3f;
+  --success:        #3fb950;
+  --premium:        #c084fc;
+  --premium-light:  #2d1f3f;
+  --alert:          #ff4da6;
+  --star:           #d29922;
+  --emerald-light:  #0d2f1e;
+
+  --bg-page:        #0d1117;
+  --bg-card:        #161b22;
+  --bg-header:      #161b22;
+  --bg-sidebar:     #161b22;
+  --bg-input:       #0d1117;
+  --bg-tag:         #21262d;
+  --bg-overlay:     rgba(0, 0, 0, 0.65);
+
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted:     #484f58;
+  --text-on-brand:  #ffffff;
+
+  --border:         #30363d;
+
+  --shadow:         0 4px 6px -1px rgba(0, 0, 0, 0.30);
+  --shadow-hover:   0 15px 30px -5px rgba(0, 0, 0, 0.40);
+  --shadow-deep:    0 20px 40px rgba(0, 0, 0, 0.25);
+  --shadow-card:    0 2px 8px rgba(0, 0, 0, 0.30);
+
+  --hero-start:     #010409;
+  --hero-mid:       #050d1e;
+  --hero-end:       #0a1f4a;
+
+  --split-from:     #0d1117;
+  --split-via:      #111827;
+  --split-to:       #1a1033;
+
+  --featured-bg:    #0d1117;
+}
+
+/* ─── Light Mode — Manual override ─── */
+[data-theme="light"] {
+  --primary:        #3a86ff;
+  --primary-dark:   #2563eb;
+  --primary-light:  #eef4ff;
+  --success:        #10b981;
+  --premium:        #a855f7;
+  --premium-light:  #f3e8ff;
+  --alert:          #ff007f;
+  --star:           #eab308;
+  --emerald-light:  #d1fae5;
+
+  --bg-page:        #f5f7fa;
+  --bg-card:        #ffffff;
+  --bg-header:      #ffffff;
+  --bg-sidebar:     #ffffff;
+  --bg-input:       #f5f7fa;
+  --bg-tag:         #f5f7fa;
+  --bg-overlay:     rgba(0, 0, 0, 0.45);
+
+  --text-primary:   #111111;
+  --text-secondary: #666666;
+  --text-muted:     #94a3b8;
+  --text-on-brand:  #ffffff;
+
+  --border:         #e2e8f0;
+
+  --shadow:         0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-hover:   0 15px 30px -5px rgba(0, 0, 0, 0.10);
+  --shadow-deep:    0 20px 40px rgba(0, 0, 0, 0.06);
+  --shadow-card:    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  --hero-start:     #030b1a;
+  --hero-mid:       #0a1f4a;
+  --hero-end:       #1a5ab8;
+
+  --split-from:     #f0f4ff;
+  --split-via:      #e8f0fe;
+  --split-to:       #f0e8ff;
+
+  --featured-bg:    #ffffff;
+}
