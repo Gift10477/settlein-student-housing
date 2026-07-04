@@ -15,9 +15,9 @@ import { getProperties } from '../../store/db';
 
 /** Configuration for each of the 3 featured slots */
 const FEATURED_CONFIG = [
-  { id: 'prop-001', accent: 'emerald', badgeStyle: 'budget',  popular: false },
-  { id: 'prop-002', accent: 'blue',    badgeStyle: 'value',   popular: true  },
-  { id: 'prop-003', accent: 'purple',  badgeStyle: 'premium', popular: false },
+  { id: 'prop-001', accent: 'emerald', badgeStyle: 'budget', popular: false },
+  { id: 'prop-002', accent: 'blue', badgeStyle: 'value', popular: true },
+  { id: 'prop-003', accent: 'purple', badgeStyle: 'premium', popular: false },
 ];
 
 export default function FeaturedGrid({ onView, onToast }) {
@@ -31,13 +31,14 @@ export default function FeaturedGrid({ onView, onToast }) {
         {/* Section header */}
         <div className="featured-header">
           <div>
-            <h2 className="featured-title">
-              Featured Listings <span>✨</span>
-            </h2>
-            <p className="featured-sub">Hand-picked, verified units for Nairobi students</p>
+            <h2 className="featured-title">Featured Properties</h2>
+            <p className="featured-sub">
+              Hand-picked student accommodation near{' '}
+              <span className="featured-sub-accent">top universities</span>
+            </p>
           </div>
           <a href="#" className="view-all-link" onClick={e => { e.preventDefault(); onView(null); }}>
-            View all rooms →
+            View all &nbsp;→
           </a>
         </div>
 

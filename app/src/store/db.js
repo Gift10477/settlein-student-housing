@@ -10,7 +10,7 @@
 const DB_KEY = 'settlein_db';
 
 /** ────────────────────────────────────────────────
- *  Seed data — 3 verified student properties
+ *  Seed data — 6 verified student properties with real images
  *  ──────────────────────────────────────────────── */
 const SEED_DATA = {
   properties: [
@@ -23,6 +23,7 @@ const SEED_DATA = {
       campus: 'strathmore',
       distance: '0.4km · Strathmore University',
       verified: true,
+      image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80',
       amenities: ['Wi-Fi', 'CCTV', 'Borehole', 'Parking'],
       description: 'Modern en-suite bedsitters in a quiet compound. 24/7 security and reliable water supply. Ideal for Strathmore University students.',
       landlord: 'Apex Properties Ltd',
@@ -42,6 +43,7 @@ const SEED_DATA = {
       campus: 'strathmore',
       distance: '0.2km · Strathmore University',
       verified: true,
+      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
       amenities: ['Biometric', 'Borehole', 'Study Room', 'Laundry'],
       description: 'Affordable hostel rooms right next to campus. Biometric access control, communal study room, and laundry facilities included.',
       landlord: 'Scholar Homes Kenya',
@@ -60,11 +62,70 @@ const SEED_DATA = {
       campus: 'ku',
       distance: '0.8km · Kenyatta University',
       verified: true,
+      image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80',
       amenities: ['Wi-Fi', 'Hot Shower', 'Balcony', 'CCTV', 'Gym'],
       description: 'Premium shared apartments with stunning city views. Each unit has a private balcony, hot shower, and access to a shared gym.',
       landlord: 'Legacy Real Estate',
       phone: '+254 712 000 003',
       reviews: [],
+      savedBy: [],
+    },
+    {
+      id: 'prop-004',
+      title: 'Parklands View Hostel',
+      type: 'Single Room',
+      price: 7500,
+      location: 'Parklands, Nairobi',
+      campus: 'uon',
+      distance: '0.6km · University of Nairobi',
+      verified: true,
+      image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80',
+      amenities: ['Wi-Fi', 'Security', 'Water 24/7', 'Common Kitchen'],
+      description: 'Comfortable single rooms in a secure compound near UoN. All-inclusive pricing covers water and electricity.',
+      landlord: 'Parklands Hostels Ltd',
+      phone: '+254 712 000 004',
+      reviews: [
+        { name: 'David K.', stars: 4, comment: 'Very convenient location and friendly management.' },
+      ],
+      savedBy: [],
+    },
+    {
+      id: 'prop-005',
+      title: 'Juja Garden Apartments',
+      type: '2-Bedroom',
+      price: 24000,
+      location: 'Juja Town, Kiambu',
+      campus: 'jkuat',
+      distance: '0.3km · JKUAT',
+      verified: true,
+      image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80',
+      amenities: ['Wi-Fi', 'Parking', 'Generator', 'Balcony', 'CCTV'],
+      description: 'Spacious 2-bedroom apartments perfect for sharing with a classmate. Modern kitchen, reliable internet, and backup generator for uninterrupted study.',
+      landlord: 'Juja Garden Properties',
+      phone: '+254 712 000 005',
+      reviews: [
+        { name: 'Esther W.', stars: 5, comment: 'Love the generator — no more power cuts during exams!' },
+        { name: 'Felix O.', stars: 5, comment: 'Spacious and well-maintained. Worth every shilling.' },
+      ],
+      savedBy: [],
+    },
+    {
+      id: 'prop-006',
+      title: 'Westlands Studio Flats',
+      type: 'Bedsitter',
+      price: 19500,
+      location: 'Westlands, Nairobi',
+      campus: 'strathmore',
+      distance: '1.2km · Strathmore University',
+      verified: true,
+      image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80',
+      amenities: ['Wi-Fi', 'Gym', 'Rooftop', 'Hot Shower', 'Elevator'],
+      description: 'Stylish studio flats in the heart of Westlands. Access to a rooftop terrace and gym. Walking distance to Strathmore and great restaurants.',
+      landlord: 'Westlands Living',
+      phone: '+254 712 000 006',
+      reviews: [
+        { name: 'Grace N.', stars: 5, comment: 'The rooftop view is stunning. Great place to unwind after class.' },
+      ],
       savedBy: [],
     },
   ],
@@ -82,7 +143,21 @@ const SEED_DATA = {
 export function getDB() {
   try {
     const raw = localStorage.getItem(DB_KEY);
-    return raw ? JSON.parse(raw) : { ...SEED_DATA };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Merge seed images in case localStorage has old data without images
+      const seedMap = Object.fromEntries(SEED_DATA.properties.map(p => [p.id, p]));
+      parsed.properties = (parsed.properties ?? []).map(p =>
+        p.image ? p : { ...p, image: seedMap[p.id]?.image ?? '' }
+      );
+      // Add any new seed properties not yet in localStorage
+      const existingIds = new Set(parsed.properties.map(p => p.id));
+      SEED_DATA.properties.forEach(sp => {
+        if (!existingIds.has(sp.id)) parsed.properties.push(sp);
+      });
+      return parsed;
+    }
+    return { ...SEED_DATA };
   } catch {
     return { ...SEED_DATA };
   }

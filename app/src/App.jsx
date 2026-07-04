@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 /* ── Styles ── */
 import './styles/index.css';
+import './styles/pages.css';
 
 /* ── Hooks ── */
 import { useTheme } from './hooks/useTheme';
@@ -28,15 +29,20 @@ import { initDB } from './store/db';
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
 import Header       from './components/layout/Header';
+import Footer       from './components/layout/Footer';
 
 /* ── View components ── */
 import HeroCanvas    from './components/home/HeroCanvas';
 import FeaturedGrid  from './components/home/FeaturedGrid';
-import QuickLogin    from './components/home/QuickLogin';
+import StatsBar      from './components/home/StatsBar';
+import WhyChooseUs   from './components/home/WhyChooseUs';
+import LandlordCTA   from './components/home/LandlordCTA';
 import ListingsView  from './components/listings/ListingsView';
 import DetailView    from './components/detail/DetailView';
 import AuthView      from './components/auth/AuthView';
 import LandlordView  from './components/landlord/LandlordView';
+import AboutView     from './components/pages/AboutView';
+import ContactView   from './components/pages/ContactView';
 
 /** How long (ms) the splash screen stays visible on load */
 const SPLASH_DURATION = 2000;
@@ -121,9 +127,11 @@ export default function App() {
         {/* Home — 3 blocks stacked */}
         {activeView === 'home' && (
           <>
-            <HeroCanvas onSearch={handleHeroSearch} />
+            <HeroCanvas onSearch={handleHeroSearch} onNavigate={(v) => navigate(v)} />
+            <StatsBar />
             <FeaturedGrid onView={viewDetail} onToast={showToast} />
-            <QuickLogin onNavigate={(v) => navigate(v)} onToast={showToast} />
+            <WhyChooseUs />
+            <LandlordCTA onNavigate={(v) => navigate(v)} />
           </>
         )}
 
@@ -157,7 +165,20 @@ export default function App() {
         {activeView === 'landlord' && (
           <LandlordView onToast={showToast} />
         )}
+
+        {/* About Us */}
+        {activeView === 'about' && (
+          <AboutView onNavigate={(v) => navigate(v)} />
+        )}
+
+        {/* Contact */}
+        {activeView === 'contact' && (
+          <ContactView onToast={showToast} />
+        )}
       </main>
+
+      {/* Site-wide footer */}
+      <Footer onNavigate={(v) => navigate(v)} />
 
       {/* ── Toast notification (bottom-right / bottom-centre on mobile) ── */}
       {toast && (

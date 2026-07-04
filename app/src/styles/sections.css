@@ -1,0 +1,268 @@
+/* ═══════════════════════════════════════════════════
+   sections.css — Stats bar, Why Choose Us, Landlord CTA
+   and Featured Card photo styles
+   All colours use CSS variables for dark/light mode support.
+   ═══════════════════════════════════════════════════ */
+
+/* ─── Stats Bar ─── */
+.stats-bar-wrap {
+  background: var(--bg-page);
+  padding: 0 5%;
+}
+
+.stats-bar-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  transform: translateY(-28px);
+  overflow: hidden;
+}
+
+.stats-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.75rem 1rem;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.stats-item--divider {
+  border-right: 1px solid var(--border);
+}
+
+.stats-number {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.stats-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .stats-bar-card {
+    grid-template-columns: repeat(2, 1fr);
+    transform: translateY(-20px);
+  }
+  .stats-item:nth-child(2) { border-right: none; }
+  .stats-item:nth-child(1),
+  .stats-item:nth-child(2) { border-bottom: 1px solid var(--border); }
+}
+
+/* ─── Why Choose Us ─── */
+.why-section {
+  background: var(--bg-page);
+  padding: 3rem 5% 5rem;
+}
+
+.why-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.why-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.why-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.6rem;
+}
+
+.why-sub {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.why-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.why-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-3px);
+}
+
+.why-icon-wrap {
+  width: 48px;
+  height: 48px;
+  background: var(--primary-light);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  margin-bottom: 1.25rem;
+}
+
+.why-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.6rem;
+}
+
+.why-card-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .why-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .why-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Landlord CTA ─── */
+.landlord-cta-section {
+  background: var(--bg-page);
+  padding: 0 5% 4rem;
+}
+
+.landlord-cta-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.landlord-cta-card {
+  position: relative;
+  background: linear-gradient(130deg, #2d3da8 0%, #1e3a8a 45%, #1a3163 100%);
+  border-radius: 20px;
+  padding: 4rem 3rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.landlord-cta-glow {
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.25) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.landlord-cta-content {
+  position: relative;
+  z-index: 2;
+}
+
+.landlord-cta-title {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.85rem;
+}
+
+.landlord-cta-sub {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+  margin: 0 auto 2rem;
+  line-height: 1.65;
+}
+
+.landlord-cta-btn {
+  background: #ffffff;
+  color: #1e3a8a;
+  border: none;
+  padding: 0.85rem 2.25rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  display: inline-block;
+}
+.landlord-cta-btn:hover {
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+/* ─── FeaturedCard photo styles ─── */
+.feat-card-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.feat-card:hover .feat-card-photo {
+  transform: scale(1.04);
+}
+
+.feat-available-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.28rem 0.75rem;
+  border-radius: 99px;
+  letter-spacing: 0.02em;
+  z-index: 3;
+}
+
+.feat-type-pill {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  color: #1e293b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  z-index: 3;
+}
+
+/* ─── Dark mode overrides for sections ─── */
+[data-theme="dark"] .stats-bar-wrap { background: var(--bg-page); }
+[data-theme="dark"] .stats-bar-card { box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--border); }
+[data-theme="dark"] .why-section { background: var(--bg-page); }
+[data-theme="dark"] .why-card { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .why-icon-wrap { background: rgba(58,134,255,0.15); }
+[data-theme="dark"] .landlord-cta-section { background: var(--bg-page); }
+[data-theme="dark"] .feat-type-pill { background: rgba(22,27,34,0.88); color: #e6edf3; }
