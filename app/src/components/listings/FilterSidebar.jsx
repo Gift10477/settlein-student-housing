@@ -72,6 +72,35 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
         </select>
       </div>
 
+      {/* Gender Policy */}
+      <div className="filter-group">
+        <label className="filter-label" htmlFor="filter-gender">Gender Policy</label>
+        <select
+          id="filter-gender"
+          value={filters.gender_policy ?? 'all'}
+          onChange={e => onChange({ ...filters, gender_policy: e.target.value })}
+        >
+          <option value="all">Any</option>
+          <option value="Mixed">Mixed</option>
+          <option value="Female-only">Female-only</option>
+          <option value="Male-only">Male-only</option>
+        </select>
+      </div>
+
+      {/* Furnishing Status */}
+      <div className="filter-group">
+        <label className="filter-label" htmlFor="filter-furnishing">Furnishing</label>
+        <select
+          id="filter-furnishing"
+          value={filters.furnishing_status ?? 'all'}
+          onChange={e => onChange({ ...filters, furnishing_status: e.target.value })}
+        >
+          <option value="all">Any</option>
+          <option value="Furnished">Furnished</option>
+          <option value="Unfurnished">Unfurnished</option>
+        </select>
+      </div>
+
       {/* Max price slider */}
       <div className="filter-group">
         <label className="filter-label" htmlFor="filter-price">

@@ -24,7 +24,7 @@ import './styles/pages.css';
 import { useTheme } from './hooks/useTheme';
 
 /* ── Data ── */
-import { initDB } from './store/db';
+import { initDB, getCurrentUser, logoutUser } from './store/db';
 
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
@@ -62,6 +62,10 @@ export default function App() {
   const [activePropId,  setActivePropId]  = useState(null);
   const [initialCampus, setInitialCampus] = useState('all');
 
+  /* ── Auth ── */
+  const [currentUser, setCurrentUser] = useState(null);
+
+
   /* ── Toast ── */
   const [toast, setToast] = useState(null); // string | null
 
@@ -70,6 +74,7 @@ export default function App() {
    * ───────────────────────────────────────────────── */
   useEffect(() => {
     initDB();
+    setCurrentUser(getCurrentUser());
     const t = setTimeout(() => setSplashLoaded(true), SPLASH_DURATION);
     return () => clearTimeout(t);
   }, []);
@@ -105,6 +110,14 @@ export default function App() {
     navigate('listings');
   }, [navigate]);
 
+  /** Logout handler */
+  const handleLogout = useCallback(() => {
+    logoutUser();
+    setCurrentUser(null);
+    showToast('Signed out successfully.');
+    navigate('home');
+  }, [navigate, showToast]);
+
   /* ─────────────────────────────────────────────────
    * Render
    * ───────────────────────────────────────────────── */
@@ -119,6 +132,8 @@ export default function App() {
         onNavigate={(view) => navigate(view)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* ── View Router — render the active view ── */}
@@ -158,6 +173,7 @@ export default function App() {
           <AuthView
             onNavigate={(v) => navigate(v)}
             onToast={showToast}
+            onAuthSuccess={(user) => setCurrentUser(user)}
           />
         )}
 

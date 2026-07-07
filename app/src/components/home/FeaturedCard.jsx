@@ -184,8 +184,12 @@ export default function FeaturedCard({
           {property.type}
         </span>
 
-        {/* "Available" green badge — bottom-left, matches UniNest */}
-        <span className="feat-available-badge">Available</span>
+        {/* "Available" green badge / "Unavailable" grey badge — bottom-left */}
+        {property.vacant_units === 0 ? (
+          <span className="feat-available-badge" style={{ backgroundColor: '#6b7280' }}>Unavailable</span>
+        ) : (
+          <span className="feat-available-badge">Available</span>
+        )}
 
         {/* Heart / save button */}
         <button
@@ -203,17 +207,29 @@ export default function FeaturedCard({
 
       {/* ── Card body ── */}
       <div className="feat-card-body">
-        <div className="feat-price-row">
+        <div className="feat-price-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className={`price-badge badge-${badgeStyle}`}>
             KES {property.price.toLocaleString()}/mo
           </span>
+          {property.verified && (
+            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>✓ Verified</span>
+          )}
         </div>
 
         <h3 className="feat-card-title">{property.title}</h3>
 
-        <p className="feat-meta">
+        <p className="feat-meta" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
           <span className="feat-meta-icon"><MapPinIcon /></span>
-          {property.distance}
+          <span style={{ flex: 1 }}>{property.distance}</span>
+          {property.vacant_units === 0 ? (
+            <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '0.8rem' }}>
+              🚫 Sold Out
+            </span>
+          ) : property.vacant_units <= 3 ? (
+            <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>
+              🔥 Only {property.vacant_units} left!
+            </span>
+          ) : null}
         </p>
 
         {/* Amenity tags — show first 3 */}

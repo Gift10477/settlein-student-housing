@@ -11,8 +11,9 @@
  */
 import React, { useState } from 'react';
 import Mascot from '../auth/Mascot';
+import { loginUser } from '../../store/db';
 
-export default function QuickLogin({ onNavigate, onToast }) {
+export default function QuickLogin({ onNavigate, onToast, onAuthSuccess }) {
   /** Track password field focus for mascot hand-cover */
   const [passwordFocused, setPasswordFocused] = useState(false);
 
@@ -26,8 +27,14 @@ export default function QuickLogin({ onNavigate, onToast }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onToast('Signed in successfully! Welcome back.');
-    onNavigate('home');
+    const result = loginUser(email, password);
+    if (result.success) {
+      if (onAuthSuccess) onAuthSuccess(result.user);
+      onToast(result.message);
+      onNavigate('home');
+    } else {
+      onToast(result.message);
+    }
   };
 
   return (

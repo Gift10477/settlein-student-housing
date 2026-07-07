@@ -21,25 +21,32 @@ const STATS = [
 
 const TEAM = [
   {
-    name: 'Amina Wanjiku',
+    name: 'Gift Githaka',
     role: 'CEO & Co-Founder',
     bio: 'Former Strathmore student who experienced first-hand the struggle of finding safe student housing. On a mission to make it stress-free for every Kenyan student.',
-    initials: 'AW',
+    initials: 'GG',
     color: '#2563eb',
   },
   {
-    name: 'Brian Otieno',
+    name: 'Yahya Abdi',
     role: 'CTO & Co-Founder',
     bio: 'Full-stack engineer with 8 years of experience building marketplace platforms. Passionate about using technology to solve real-world African problems.',
-    initials: 'BO',
+    initials: 'YA',
     color: '#7c3aed',
   },
   {
-    name: 'Carol Njeri',
+    name: 'Tiffany Akello',
     role: 'Head of Operations',
     bio: 'Coordinates property verification, landlord relations, and student support across all our partner universities nationwide.',
-    initials: 'CN',
+    initials: 'TA',
     color: '#0891b2',
+  },
+  {
+    name: 'Ian Njugu',
+    role: 'Head of Product',
+    bio: 'Focused on designing user-centric experiences that make finding and securing accommodation as seamless as possible.',
+    initials: 'IN',
+    color: '#f59e0b',
   },
 ];
 

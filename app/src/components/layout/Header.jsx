@@ -49,7 +49,7 @@ function MoonIcon() {
   );
 }
 
-export default function Header({ currentView, onNavigate, theme, onToggleTheme }) {
+export default function Header({ currentView, onNavigate, theme, onToggleTheme, currentUser, onLogout }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled,   setScrolled]   = useState(false);
 
@@ -119,17 +119,28 @@ export default function Header({ currentView, onNavigate, theme, onToggleTheme }
           </a>
         ))}
 
-        {/* Sign In — plain text link */}
-        <a href="#" className="nav-signin"
-          onClick={(e) => { e.preventDefault(); handleNav('auth'); }}>
-          Sign In
-        </a>
-
-        {/* Get Started — filled blue pill */}
-        <button className="nav-get-started"
-          onClick={() => handleNav('auth')}>
-          Get Started
-        </button>
+        {/* User Auth Section */}
+        {currentUser ? (
+          <>
+            <span className="nav-user-name" style={{ color: 'var(--text)', fontWeight: 500, margin: '0 0.5rem' }}>
+              Hi, {currentUser.name.split(' ')[0]}
+            </span>
+            <button className="nav-get-started" onClick={() => { closeDrawer(); onLogout(); }}>
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <>
+            <a href="#" className="nav-signin"
+              onClick={(e) => { e.preventDefault(); handleNav('auth'); }}>
+              Sign In
+            </a>
+            <button className="nav-get-started"
+              onClick={() => handleNav('auth')}>
+              Get Started
+            </button>
+          </>
+        )}
       </nav>
 
       {/* Theme toggle — SVG sun/moon */}

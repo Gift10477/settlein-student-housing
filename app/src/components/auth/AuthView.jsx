@@ -10,6 +10,7 @@
  *   onToast    — fn(message) to show a toast notification
  */
 import React, { useState } from 'react';
+import { registerUser, loginUser } from '../../store/db';
 
 /* Feature bullets shown on the left panel */
 const FEATURES = [
@@ -19,7 +20,7 @@ const FEATURES = [
   { icon: '✓', text: 'Save favourites and track your applications' },
 ];
 
-export default function AuthView({ onNavigate, onToast }) {
+export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
   const [activeTab,       setActiveTab]       = useState('signup');
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword,    setShowPassword]    = useState(false);
@@ -36,14 +37,26 @@ export default function AuthView({ onNavigate, onToast }) {
 
   const handleSignIn = (e) => {
     e.preventDefault();
-    onToast('Welcome back! Signed in successfully.');
-    onNavigate('home');
+    const result = loginUser(siEmail, siPassword);
+    if (result.success) {
+      if (onAuthSuccess) onAuthSuccess(result.user);
+      onToast(result.message);
+      onNavigate('home');
+    } else {
+      onToast(result.message);
+    }
   };
 
   const handleSignUp = (e) => {
     e.preventDefault();
-    onToast('Account created! Welcome to SettleIn 🎉');
-    onNavigate('home');
+    const result = registerUser({ name: suName, email: suEmail, password: suPassword, role: suRole });
+    if (result.success) {
+      if (onAuthSuccess) onAuthSuccess(result.user);
+      onToast(result.message);
+      onNavigate('home');
+    } else {
+      onToast(result.message);
+    }
   };
 
   return (
