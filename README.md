@@ -57,3 +57,12 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
+
+## Team Members
+
+| Student ID | Name |
+| --- | --- |
+| 193923 | Githaka, Gift Gicheru |
+| 220259 | Kungu, Ian Gachigua |
+| 220982 | Abdi, Yahya Ahmed |
+| 221126 | Olale, Tiffany Akello |
