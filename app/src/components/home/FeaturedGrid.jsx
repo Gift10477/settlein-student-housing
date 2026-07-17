@@ -20,7 +20,7 @@ const FEATURED_CONFIG = [
   { id: 'prop-003', accent: 'purple', badgeStyle: 'premium', popular: false },
 ];
 
-export default function FeaturedGrid({ onView, onToast }) {
+export default function FeaturedGrid({ onView, onNavigate, onToast }) {
   /** Load properties from the db (already seeded) */
   const all = getProperties();
 
@@ -37,7 +37,7 @@ export default function FeaturedGrid({ onView, onToast }) {
               <span className="featured-sub-accent">top universities</span>
             </p>
           </div>
-          <a href="#" className="view-all-link" onClick={e => { e.preventDefault(); onView(null); }}>
+          <a href="#" className="view-all-link" onClick={e => { e.preventDefault(); onNavigate('listings'); }}>
             View all &nbsp;→
           </a>
         </div>
