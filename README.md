@@ -1,4 +1,4 @@
-# 🏡 SettleIn - Student Housing Marketplace
+#  SettleIn - Student Housing Marketplace
 
 ![SettleIn Banner](https://via.placeholder.com/1200x400/2563EB/FFFFFF?text=SettleIn+-+Student+Housing+Made+Easy)
 
@@ -6,11 +6,11 @@
 
 ---
 
-## ✨ Key Features & User Journeys
+##  Key Features & User Journeys
 
 The platform is divided into two primary experiences tailored for students seeking housing and landlords managing properties.
 
-### 🎓 For Students (Tenants)
+###  For Students (Tenants)
 - **Advanced Search & Filtering**: Browse listings by nearest university campus (Strathmore, UoN, KU, JKUAT) and filter by room type (Bedsitter, Hostel Room, Shared Apartment, Studio, 1 Bedroom).
 - **Detailed Property Profiles**: View comprehensive details including pricing, distance to campus, furnishing status, gender policies, and Google Maps location links.
 - **Transparent Cost Breakdown**: See exactly what you'll pay upfront. Listings break down monthly rent, security deposits, booking fees, and clearly state which utilities (Water, Wi-Fi, Garbage) are included.
@@ -25,16 +25,16 @@ The platform is divided into two primary experiences tailored for students seeki
 
 ---
 
-## 🛠️ Architecture & Core Systems
+##  Architecture & Core Systems
 
-- **🌓 Light & Dark Mode**: Built-in theme management via React hooks and CSS data attributes for a comfortable viewing experience.
-- **🔐 Mock Authentication**: Custom sign-in and sign-up flows that conditionally render portal access and protect sensitive property details.
-- **⚡ Custom Routing**: Fast, lightweight custom routing built entirely in React state (`activeView`), avoiding external router dependencies.
-- **💾 Local Data Store**: Fully functional mock database utilizing the browser's Local Storage (`db.js`) to persist users, listings, reviews, and pending submissions.
+- ** Light & Dark Mode**: Built-in theme management via React hooks and CSS data attributes for a comfortable viewing experience.
+- **Mock Authentication**: Custom sign-in and sign-up flows that conditionally render portal access and protect sensitive property details.
+- ** Custom Routing**: Fast, lightweight custom routing built entirely in React state (`activeView`), avoiding external router dependencies.
+- ** Local Data Store**: Fully functional mock database utilizing the browser's Local Storage (`db.js`) to persist users, listings, reviews, and pending submissions.
 
 ---
 
-## 🚀 Tech Stack
+##  Tech Stack
 
 - **Frontend Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **Styling**: Pure, modular Vanilla CSS (Custom properties, Flexbox/Grid architecture)
@@ -45,7 +45,7 @@ The platform is divided into two primary experiences tailored for students seeki
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 The project follows a feature-based directory structure:
 
@@ -63,7 +63,7 @@ app/
 
 ---
 
-## 🏃 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -96,7 +96,7 @@ Open [http://localhost:5173](http://localhost:5173) to view the application in y
 
 ---
 
-## 👥 Team Members
+##  Team Members
 
 This project was developed by:
 
