@@ -1,17 +1,12 @@
 /**
  * db.js — SettleIn data layer
  *
- * Handles all localStorage reads/writes and provides the
- * initial seed dataset. Every function is a pure utility —
- * no React dependency — so it can be used anywhere.
- */
+ /
 
 /** The localStorage key for all app data */
 const DB_KEY = 'settlein_db_v3';
 
-/** ────────────────────────────────────────────────
- *  Seed data — 6 verified student properties with real images
- *  ──────────────────────────────────────────────── */
+
 const SEED_DATA = {
   properties: [
     {
@@ -555,6 +550,12 @@ export function addPendingListing(listing) {
 export function registerUser({ name, email, password, role }) {
   const db = getDB();
   db.users = db.users || [];
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { success: false, message: 'Please provide a valid email address.' };
+  }
 
   if (db.users.find(u => u.email === email)) {
     return { success: false, message: 'Email is already registered.' };

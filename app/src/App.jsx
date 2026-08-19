@@ -28,6 +28,7 @@ import { initDB, getCurrentUser, logoutUser } from './store/db';
 
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
+import PageLoader   from './components/layout/PageLoader';
 import Header       from './components/layout/Header';
 import Footer       from './components/layout/Footer';
 
@@ -57,13 +58,18 @@ export default function App() {
   /* ── Splash ── */
   const [splashLoaded, setSplashLoaded] = useState(false);
 
+  /* ── Page Transition ── */
+  const [isNavigating, setIsNavigating] = useState(false);
+
   /* ── View router ── */
   const [activeView,    setActiveView]    = useState('home');
   const [activePropId,  setActivePropId]  = useState(null);
   const [initialCampus, setInitialCampus] = useState('all');
 
   /* ── Auth ── */
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser,   setCurrentUser]   = useState(null);
+  /** Property ID the guest was trying to view before we sent them to auth */
+  const [pendingPropId, setPendingPropId] = useState(null);
 
 
   /* ── Toast ── */
@@ -92,17 +98,33 @@ export default function App() {
    * Navigation helper
    * ───────────────────────────────────────────────── */
   const navigate = useCallback((view, propId = null, campus = 'all') => {
-    setActiveView(view);
-    setActivePropId(propId);
-    if (campus !== 'all') setInitialCampus(campus);
-    // Scroll to top on every navigation
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsNavigating(true);
+    
+    // Allow loader to fade in before changing the DOM
+    setTimeout(() => {
+      setActiveView(view);
+      setActivePropId(propId);
+      if (campus !== 'all') setInitialCampus(campus);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      
+      // Keep loader on screen briefly while new view renders
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 400);
+    }, 300);
   }, []);
 
-  /** Navigate to a listing's detail view */
+  /** Navigate to a listing's detail view — requires login */
   const viewDetail = useCallback((propId) => {
+    if (!currentUser) {
+      // Remember which property they wanted and send to auth
+      setPendingPropId(propId);
+      showToast('Please sign in or create an account to view property details.');
+      navigate('auth');
+      return;
+    }
     navigate('detail', propId);
-  }, [navigate]);
+  }, [navigate, currentUser, showToast]);
 
   /** Search from the hero (go to listings, pre-filtered by campus) */
   const handleHeroSearch = useCallback((campus) => {
@@ -126,6 +148,9 @@ export default function App() {
       {/* Animated splash loading curtain */}
       <SplashScreen loaded={splashLoaded} />
 
+      {/* Page loader for view transitions */}
+      <PageLoader isNavigating={isNavigating} />
+
       {/* Sticky header — always visible */}
       <Header
         currentView={activeView}
@@ -144,7 +169,7 @@ export default function App() {
           <>
             <HeroCanvas onSearch={handleHeroSearch} onNavigate={(v) => navigate(v)} />
             <StatsBar />
-            <FeaturedGrid onView={viewDetail} onToast={showToast} />
+            <FeaturedGrid onView={viewDetail} onNavigate={(v) => navigate(v)} onToast={showToast} />
             <WhyChooseUs />
             <LandlordCTA onNavigate={(v) => navigate(v)} />
           </>
@@ -173,7 +198,15 @@ export default function App() {
           <AuthView
             onNavigate={(v) => navigate(v)}
             onToast={showToast}
-            onAuthSuccess={(user) => setCurrentUser(user)}
+            onAuthSuccess={(user) => {
+              setCurrentUser(user);
+              // Redirect to the property they originally wanted, if any
+              if (pendingPropId) {
+                const id = pendingPropId;
+                setPendingPropId(null);
+                navigate('detail', id);
+              }
+            }}
           />
         )}
 
