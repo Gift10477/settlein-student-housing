@@ -235,13 +235,14 @@ Every entity ("Thing") that SettleIn stores, alongside all operations and action
 
 ```mermaid
 graph LR
-    T14["Team 14<br/>(Upstream Producer)"] -->|"Consumes From<br/>(e.g., Campus/ID/Payment/Auth APIs)"| T1["Team 1: SettleIn<br/>(Our Position)"]
-    T1 -->|"Provides Services / Consumed By<br/>(Accommodation, Booking & Search APIs)"| T14_Consumer["Team 14 / Downstream Consumers<br/>(Partner Integration)"]
+    T14["Team 14<br/>(Upstream Producer)"] -->|"Consumes From<br/>(Upstream Services/APIs)"| T1["Team 1: SettleIn<br/>(Our Position)"]
+    T1 -->|"Provides Services / Consumed By<br/>(Accommodation, Booking & Search APIs)"| T2["Team 2<br/>(Downstream Consumer)"]
 ```
 
 ### Team 1 Position Details
 * **Assigned Ring Position:** **Team 1**
 * **Upstream Integration (Who we consume from):**
-  * **Consuming from Team 14:** We consume upstream data feeds, partner services, and shared integration endpoints (such as university student directory validation, external mapping/transport feeds, or partner payment/billing infrastructure) provided by Team 14.
-* **Downstream Integration (Who consumes us):**
-  * **Consumed by Team 14 / Downstream Partners:** Team 1 exposes student accommodation search, real-time vacant room availability, landlord verification statuses, and housing booking contract endpoints for consumption by Team 14 and surrounding ring ecosystem partners.
+  * **Consuming from Team 14:** Team 1 consumes upstream data feeds, partner services, and shared integration endpoints provided by Team 14.
+* **Downstream Integration (Who will consume us):**
+  * **Consumed by Team 2:** Team 1 exposes student accommodation search, real-time vacant room availability, landlord verification statuses, and housing booking contract endpoints for direct consumption by Team 2.
+
