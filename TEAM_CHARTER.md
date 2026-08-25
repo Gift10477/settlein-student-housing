@@ -246,3 +246,5 @@ graph LR
 * **Downstream Integration (Who will consume us):**
   * **Consumed by Team 2:** Team 1 exposes student accommodation search, real-time vacant room availability, landlord verification statuses, and housing booking contract endpoints for direct consumption by Team 2.
 
+
+Link for github : https://github.com/Gift10477/settlein-student-housing
