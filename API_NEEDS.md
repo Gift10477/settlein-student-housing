@@ -9,10 +9,10 @@
 ## 1. Upstream & Downstream Partner Interview Summaries
 
 ### Downstream Partner Interview: StudySync (Team 2)
-* **Useful Data/Actions:** Project/assignment deadlines, scheduled meetings, member rosters, task-related dates, progress tracking, and reminders.
-* **Access Mode:** Primarily read-only (GET) to populate calendars and widgets, with potential future write actions (creating reminders/events).
-* **Call Frequency:** Once per page load for deadlines and member info; refreshed every few minutes or on calendar view open.
-* **Sensitivity/Boundaries:** No access to private student data like grades, passwords, or personal messages.
+* **Useful Data/Actions:** Student residential neighborhoods/estates, proximity to campus, accommodation study amenities (Wi-Fi speed, dedicated desk space, backup power), lease move-in dates (for availability planning), verified student identity, and shared-living group booking inquiries.
+* **Access Mode:** Primarily read-only (GET) to populate study venue recommendations and group calendars, with targeted write actions (POST) for group housing inquiries.
+* **Call Frequency:** On-demand per study session planning flow; once per page load for member profile previews; cached for 1–24 hours.
+* **Sensitivity/Boundaries:** No access to private student credentials, financial payment records (M-PESA numbers/PINs), landlord direct banking details, or exact private room/house numbers (neighborhood-level privacy only).
 
 ### Upstream Partner Interview: Team 14 (Producer)
 * **Managed Data:** User names, roles, market commodity prices, farmer ratings, headquarters/depot locations, total earnings.
@@ -29,56 +29,66 @@ Every needs statement strictly adheres to the required format:
 
 ---
 
-### Statement 1: Project & Assignment Deadlines
-> **“StudySync needs to read a list of active project and assignment deadlines with due dates, course codes, and completion statuses in order to display an upcoming-deadlines widget and timeline on the student dashboard.”**
+### Statement 1: Student Residential Area & Proximity to Campus
+> **“StudySync needs to read a student’s residential estate name, distance to campus, and general location coordinates in order to calculate central meetup locations and suggest convenient physical study group venues midpoint between team members.”**
 
-* **Freshness:** Updated within 15–30 minutes is sufficient.
-* **Volume:** Called once per page load when the user navigates to the dashboard or task view.
-* **Auth:** Required (Authenticated student session token / Bearer token scoped to enrolled courses).
-* **Week 1 Audit Check:** 🚩 **GAP FLAGGED** — SettleIn’s resource audit (`TEAM_CHARTER.md`) manages housing leases and booking dates, but does not manage academic coursework or assignment deadlines.
-
----
-
-### Statement 2: Scheduled Group Meetings & Timestamps
-> **“StudySync needs to read scheduled team meeting dates, start/end timestamps, meeting links, and agendas for a registered project group in order to render a merged study group calendar and detect scheduling conflicts.”**
-
-* **Freshness:** Updated within 5–10 minutes.
-* **Volume:** Called on demand whenever a user opens or refreshes the group calendar tab.
-* **Auth:** Required (Authenticated user verified as an active member of the project group).
-* **Week 1 Audit Check:** 🚩 **GAP FLAGGED** — SettleIn does not maintain entities for academic study sessions or group meeting agendas.
+* **Verb & Resource:** `GET /api/v1/users/{id}/residence-area`
+* **Freshness:** Semi-static (cached for 24 hours; students rarely change residences mid-semester).
+* **Volume:** Low — called on-demand when a study group schedules an offline study session or opens the group meetup map.
+* **Auth & Security:** Required (Authenticated student Bearer token). For privacy, exact room numbers and building names are redacted; only neighborhood level (e.g., *"Madaraka"*, *"Parklands"*) and distance are exposed.
+* **Entity Mapping:** Mapped to `Entity 1: User Accounts & Profiles` and `Entity 3: Properties & Accommodations (location, distance_to_campus)`.
 
 ---
 
-### Statement 3: Team Roster & Participant Information
-> **“StudySync needs to read the list of active team members with their display names, assigned group roles, and avatar URLs for a given project in order to render the team participant roster and display task assignees.”**
+### Statement 2: Accommodation Study Amenities & Wi-Fi Reliability
+> **“StudySync needs to read the accommodation study amenities (high-speed Wi-Fi rating, dedicated desk space, backup generator, quiet-hours policy) for a member’s residence in order to identify and recommend host-friendly apartments for group project work sprints.”**
 
-* **Freshness:** Semi-static (cached for 1–6 hours; rosters change infrequently).
-* **Volume:** Called once per group project overview page load.
-* **Auth:** Required (User session token ensuring only authorized teammates can view member details).
-* **Week 1 Audit Check:** ⚠️ **PARTIAL OVERLAP / GAP FLAGGED** — Mapped to `Entity 1: User Accounts & Profiles (users)` for student names/avatars; however, SettleIn does not store academic group memberships or project roles.
-
----
-
-### Statement 4: Task Progress & Member Accountability
-> **“StudySync needs to read assigned task completion statuses and progress percentages per team member in order to display a visual accountability tracker and milestone progress bar.”**
-
-* **Freshness:** Updated within 5–10 minutes.
-* **Volume:** Called once per page load when viewing the group accountability / progress tab.
-* **Auth:** Required (Scoped to verified project group members).
-* **Week 1 Audit Check:** 🚩 **GAP FLAGGED** — SettleIn has no entity or schema for academic task tracking or student deliverables.
+* **Verb & Resource:** `GET /api/v1/accommodations/{id}/study-amenities`
+* **Freshness:** Updated within 1–6 hours.
+* **Volume:** Low to medium — called when group members search for an optimal study host home.
+* **Auth & Security:** Required (Authenticated group member session token).
+* **Entity Mapping:** Mapped to `Entity 3: Properties` and `Entity 7: Amenities & Utilities`.
 
 ---
 
-### Statement 5: Deadline Reminders & Event Hooks (Write Need)
-> **“StudySync needs to create automated deadline reminder notifications and calendar sync events for upcoming milestones in order to push timely study alerts to group members before submission dates.”**
+### Statement 3: Move-in & Semester Lease Timeline Dates
+> **“StudySync needs to read student lease start and move-in dates in order to automatically flag student relocation periods as busy/unavailable on the group collaboration calendar.”**
 
+* **Verb & Resource:** `GET /api/v1/students/{id}/lease-timeline`
+* **Freshness:** Updated within 1 hour of booking confirmation.
+* **Volume:** Low — called once per group calendar synchronization or schedule conflict check.
+* **Auth & Security:** Required (Scoped to verified peers sharing an active project group).
+* **Entity Mapping:** Mapped to `Entity 8: Bookings & Room Reservations (move_in_date, lease_duration)`.
+
+---
+
+### Statement 4: Verified Student Identity & University Affiliation
+> **“StudySync needs to read verified student profile details (display name, verified university affiliation, campus branch, and avatar URL) in order to populate participant profiles and verify campus eligibility without duplicate account entry.”**
+
+* **Verb & Resource:** `GET /api/v1/users/{id}/public-profile`
+* **Freshness:** Cached for 6–12 hours.
+* **Volume:** Medium — called once per group member roster view or project dashboard load.
+* **Auth & Security:** Required (Standard API token; sensitive fields like phone number, student ID number, and password hashes are strictly omitted).
+* **Entity Mapping:** Mapped to `Entity 1: User Accounts & Profiles (name, university, avatar_url, verification_status)`.
+
+---
+
+### Statement 5: Shared Accommodation & Co-Living Group Inquiry (Write Action)
+> **“StudySync needs to create a shared-housing inquiry notification with group member IDs and target campus branch in order to alert study group members about available multi-bedroom apartments suitable for co-living near their campus.”**
+
+* **Verb & Resource:** `POST /api/v1/accommodations/group-inquiries`
 * **Freshness:** Near real-time upon event creation.
-* **Volume:** Low / Infrequent (triggered only when a milestone or study reminder is scheduled).
-* **Auth:** High / Required (Write-permission bearer token from an active group collaborator).
-* **Week 1 Audit Check:** ⚠️ **PARTIAL OVERLAP / GAP FLAGGED** — Mapped to `Entity 17: Notifications & Alerts (notifications)`, but SettleIn currently only dispatches housing/booking alerts, not academic deadline reminders.
+* **Volume:** Low / Infrequent — triggered only when a study group explicitly requests a joint accommodation search.
+* **Auth & Security:** High / Required (Write-permission Bearer token from an authenticated study group admin).
+* **Entity Mapping:** Mapped to `Entity 3: Properties`, `Entity 8: Bookings`, and `Entity 17: Notifications & Alerts`.
 
 ---
 
-## 3. Reflection: Partner Interview Insights
+## 3. Reflection: Partner Interview Insights & Domain Reconciliation
 
-The partner interview process revealed significant architectural assumptions and unexpected integration dynamics across our ring topology. What surprised us most in our interview with **StudySync (Team 2)** was a fundamental domain expectation mismatch: they entered the interview assuming our application was an academic course and project management hub, asking for coursework deadlines, task progress trackers, and group meeting schedules. In reality, **SettleIn (Team 1)** is a student housing and accommodation marketplace. Performing the Week 1 audit check immediately caught this gap before we wrote phantom endpoints, underscoring the vital role of interface discovery. On the other side, our interview with our upstream partner **Team 14** was eye-opening in terms of distributed system trade-offs: learning about their multi-tiered caching pipeline (1-minute source writes, 5-minute cron ingestion, and 60-second Redis caching) gave us concrete numbers on data freshness (~6-minute worst-case staleness), proving why API contracts must explicitly document latency expectations and payload timestamps like `fetched_at` rather than assuming instantaneous consistency.
+The partner interview process provided critical insights into architectural assumptions and cross-domain integration dynamics across our ring topology. 
+
+What stood out most during our discovery phase with **StudySync (Team 2)** was an initial domain expectation mismatch: StudySync entered the interview assuming SettleIn managed academic coursework, requesting assignment deadlines, task progress trackers, and group study schedules. Performing the Week 1 resource audit against our [TEAM_CHARTER.md](file:///c:/Users/giftg/OneDrive%20-%20Strathmore%20University/Desktop/Student_accomodation_app/TEAM_CHARTER.md) immediately caught this gap before writing phantom endpoints. We successfully reconciled our interface contract by pivoting to high-value **cross-domain touchpoints**: providing StudySync with residential neighborhood data for physical meetup planning, housing amenity ratings (Wi-Fi/power) for study sprint venues, and verified campus identities. 
+
+On the other side, our interview with upstream partner **Team 14** offered crucial clarity on distributed system trade-offs: understanding their multi-tiered caching pipeline (1-minute source writes, 5-minute cron ingestion, and 60-second Redis caching) gave us concrete numbers on data freshness (~6-minute worst-case staleness), demonstrating why API contracts must explicitly document latency expectations and payload timestamps like `fetched_at` rather than assuming instantaneous consistency.
+
