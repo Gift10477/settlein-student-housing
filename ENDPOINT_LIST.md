@@ -17,7 +17,7 @@ Olale, Tiffany Akello (221126)
 
 ## Peer Review Feedback
 
-### Reviewer: Team 2
+### Reviewer: Team 3
 
 - Endpoint 1: Reviewer confirmed that `/users/{id}/residence-area` follows the noun-based URL convention and has reasonable one-level nesting.
 - Endpoint 2: Reviewer confirmed that `/accommodations/{id}/study-amenities` is appropriately nested because the study amenities belong to a specific accommodation.
