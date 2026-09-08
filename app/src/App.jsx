@@ -1,203 +1,240 @@
+/**
+ * App.jsx — Root Application Component
+ *
+ * Responsibilities:
+ *  1. Theme management — reads useTheme hook, applies data-theme on <html>
+ *  2. Routing — manages `activeView` state, renders the correct view
+ *  3. Splash screen — hides after a short delay on mount
+ *  4. Toast notifications — renders a single toast with auto-dismiss
+ *
+ * View IDs:
+ *  'home'     — Home page (hero + featured + quick login)
+ *  'listings' — Browse all rooms
+ *  'detail'   — Single property detail (requires activePropId)
+ *  'auth'     — Sign in / Create account
+ *  'landlord' — Landlord submission form
+ */
 import React, { useState, useEffect, useCallback } from 'react';
-import './App.css';
 
+/* ── Styles ── */
+import './styles/index.css';
+import './styles/pages.css';
+
+/* ── Hooks ── */
 import { useTheme } from './hooks/useTheme';
+
+/* ── Data ── */
 import { initDB, getCurrentUser, logoutUser } from './store/db';
 
+/* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
-import PageLoader from './components/layout/PageLoader';
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
+import PageLoader   from './components/layout/PageLoader';
+import Header       from './components/layout/Header';
+import Footer       from './components/layout/Footer';
 
-import HeroCanvas from './components/home/HeroCanvas';
-import FeaturedGrid from './components/home/FeaturedGrid';
-import StatsBar from './components/home/StatsBar';
-import WhyChooseUs from './components/home/WhyChooseUs';
-import LandlordCTA from './components/home/LandlordCTA';
+/* ── View components ── */
+import HeroCanvas    from './components/home/HeroCanvas';
+import FeaturedGrid  from './components/home/FeaturedGrid';
+import StatsBar      from './components/home/StatsBar';
+import WhyChooseUs   from './components/home/WhyChooseUs';
+import LandlordCTA   from './components/home/LandlordCTA';
+import ListingsView  from './components/listings/ListingsView';
+import DetailView    from './components/detail/DetailView';
+import AuthView      from './components/auth/AuthView';
+import LandlordView  from './components/landlord/LandlordView';
+import AboutView     from './components/pages/AboutView';
+import ContactView   from './components/pages/ContactView';
 
-import ListingsView from './components/listings/ListingsView';
-import DetailView from './components/detail/DetailView';
-import AuthView from './components/auth/AuthView';
-import LandlordView from './components/landlord/LandlordView';
+/** How long (ms) the splash screen stays visible on load */
+const SPLASH_DURATION = 2000;
 
-import AboutView from './components/pages/AboutView';
-import ContactView from './components/pages/ContactView';
+/** How long (ms) a toast notification stays visible */
+const TOAST_DURATION = 3200;
 
 export default function App() {
-    const [activeView, setActiveView] = useState('home');
-    const [selectedListing, setSelectedListing] = useState(null);
-    const [showSplash, setShowSplash] = useState(true);
-    const [pageLoading, setPageLoading] = useState(false);
-    const [toast, setToast] = useState(null);
-    const [user, setUser] = useState(null);
+  /* ── Theme ── */
+  const { theme, toggle: toggleTheme } = useTheme();
 
-    const { theme, toggleTheme } = useTheme();
+  /* ── Splash ── */
+  const [splashLoaded, setSplashLoaded] = useState(false);
 
-    useEffect(() => {
-        initDB();
+  /* ── Page Transition ── */
+  const [isNavigating, setIsNavigating] = useState(false);
 
-        const currentUser = getCurrentUser();
+  /* ── View router ── */
+  const [activeView,    setActiveView]    = useState('home');
+  const [activePropId,  setActivePropId]  = useState(null);
+  const [initialCampus, setInitialCampus] = useState('all');
 
-        if (currentUser) {
-            setUser(currentUser);
-        }
+  /* ── Auth ── */
+  const [currentUser,   setCurrentUser]   = useState(null);
+  /** Property ID the guest was trying to view before we sent them to auth */
+  const [pendingPropId, setPendingPropId] = useState(null);
 
-        const timer = setTimeout(() => {
-            setShowSplash(false);
-        }, 2500);
 
-        return () => clearTimeout(timer);
-    }, []);
+  /* ── Toast ── */
+  const [toast, setToast] = useState(null); // string | null
 
-    const showToast = useCallback((message, type = 'success') => {
-        setToast({
-            message,
-            type
-        });
+  /* ─────────────────────────────────────────────────
+   * Initialisation — seed the db and dismiss splash
+   * ───────────────────────────────────────────────── */
+  useEffect(() => {
+    initDB();
+    setCurrentUser(getCurrentUser());
+    const t = setTimeout(() => setSplashLoaded(true), SPLASH_DURATION);
+    return () => clearTimeout(t);
+  }, []);
 
-        setTimeout(() => {
-            setToast(null);
-        }, 3000);
-    }, []);
+  /* ─────────────────────────────────────────────────
+   * Toast helper — auto-dismisses after TOAST_DURATION
+   * ───────────────────────────────────────────────── */
+  const showToast = useCallback((message) => {
+    setToast(message);
+    const t = setTimeout(() => setToast(null), TOAST_DURATION);
+    return () => clearTimeout(t);
+  }, []);
 
-    const navigate = useCallback((view, listing = null) => {
-        setPageLoading(true);
+  /* ─────────────────────────────────────────────────
+   * Navigation helper
+   * ───────────────────────────────────────────────── */
+  const navigate = useCallback((view, propId = null, campus = 'all') => {
+    setIsNavigating(true);
+    
+    // Allow loader to fade in before changing the DOM
+    setTimeout(() => {
+      setActiveView(view);
+      setActivePropId(propId);
+      if (campus !== 'all') setInitialCampus(campus);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      
+      // Keep loader on screen briefly while new view renders
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 400);
+    }, 300);
+  }, []);
 
-        if (listing) {
-            setSelectedListing(listing);
-        }
-
-        setTimeout(() => {
-            setActiveView(view);
-            setPageLoading(false);
-
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }, 300);
-    }, []);
-
-    const handleLogin = useCallback(
-        (loggedInUser) => {
-            setUser(loggedInUser);
-            showToast('Welcome back!');
-            navigate('home');
-        },
-        [navigate, showToast]
-    );
-
-    const handleLogout = useCallback(() => {
-        logoutUser();
-        setUser(null);
-        showToast('You have been logged out.');
-        navigate('home');
-    }, [navigate, showToast]);
-
-    const handleListingSelect = useCallback(
-        (listing) => {
-            setSelectedListing(listing);
-            navigate('detail', listing);
-        },
-        [navigate]
-    );
-
-    if (showSplash) {
-        return <SplashScreen />;
+  /** Navigate to a listing's detail view — requires login */
+  const viewDetail = useCallback((propId) => {
+    if (!currentUser) {
+      // Remember which property they wanted and send to auth
+      setPendingPropId(propId);
+      showToast('Please sign in or create an account to view property details.');
+      navigate('auth');
+      return;
     }
+    navigate('detail', propId);
+  }, [navigate, currentUser, showToast]);
 
-    return (
-        <div className={`app ${theme}`}>
-            <Header
-                activeView={activeView}
-                onNavigate={navigate}
-                user={user}
-                onLogout={handleLogout}
-                theme={theme}
-                toggleTheme={toggleTheme}
-            />
+  /** Search from the hero (go to listings, pre-filtered by campus) */
+  const handleHeroSearch = useCallback((campus) => {
+    setInitialCampus(campus);
+    navigate('listings');
+  }, [navigate]);
 
-            {pageLoading && <PageLoader />}
+  /** Logout handler */
+  const handleLogout = useCallback(() => {
+    logoutUser();
+    setCurrentUser(null);
+    showToast('Signed out successfully.');
+    navigate('home');
+  }, [navigate, showToast]);
 
-            {toast && (
-                <div className={`toast toast-${toast.type}`}>
-                    {toast.message}
-                </div>
-            )}
+  /* ─────────────────────────────────────────────────
+   * Render
+   * ───────────────────────────────────────────────── */
+  return (
+    <>
+      {/* Animated splash loading curtain */}
+      <SplashScreen loaded={splashLoaded} />
 
-            <main id="app-root">
+      {/* Page loader for view transitions */}
+      <PageLoader isNavigating={isNavigating} />
 
-                {/* Home page */}
-                {activeView === 'home' && (
-                    <>
-                        <HeroCanvas onNavigate={navigate} />
+      {/* Sticky header — always visible */}
+      <Header
+        currentView={activeView}
+        onNavigate={(view) => navigate(view)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
 
-                        <FeaturedGrid
-                            onListingSelect={handleListingSelect}
-                            onNavigate={navigate}
-                        />
+      {/* ── View Router — render the active view ── */}
+      <main id="app-root">
 
-                        <StatsBar />
+        {/* Home — 3 blocks stacked */}
+        {activeView === 'home' && (
+          <>
+            <HeroCanvas onSearch={handleHeroSearch} onNavigate={(v) => navigate(v)} />
+            <StatsBar />
+            <FeaturedGrid onView={viewDetail} onNavigate={(v) => navigate(v)} onToast={showToast} />
+            <WhyChooseUs />
+            <LandlordCTA onNavigate={(v) => navigate(v)} />
+          </>
+        )}
 
-                        <WhyChooseUs />
+        {/* Browse all listings */}
+        {activeView === 'listings' && (
+          <ListingsView
+            initialCampus={initialCampus}
+            onView={viewDetail}
+            onToast={showToast}
+          />
+        )}
 
-                        <LandlordCTA onNavigate={navigate} />
-                    </>
-                )}
+        {/* Single property detail */}
+        {activeView === 'detail' && activePropId && (
+          <DetailView
+            propId={activePropId}
+            onBack={() => navigate('listings')}
+            onToast={showToast}
+          />
+        )}
 
-                {/* Listings page */}
-                {activeView === 'listings' && (
-                    <ListingsView
-                        onListingSelect={handleListingSelect}
-                        onNavigate={navigate}
-                    />
-                )}
+        {/* Auth (sign in / sign up) */}
+        {activeView === 'auth' && (
+          <AuthView
+            onNavigate={(v) => navigate(v)}
+            onToast={showToast}
+            onAuthSuccess={(user) => {
+              setCurrentUser(user);
+              // Redirect to the property they originally wanted, if any
+              if (pendingPropId) {
+                const id = pendingPropId;
+                setPendingPropId(null);
+                navigate('detail', id);
+              }
+            }}
+          />
+        )}
 
-                {/* Property details */}
-                {activeView === 'detail' && selectedListing && (
-                    <DetailView
-                        listing={selectedListing}
-                        onNavigate={navigate}
-                        onToast={showToast}
-                    />
-                )}
+        {/* Landlord portal */}
+        {activeView === 'landlord' && (
+          <LandlordView onToast={showToast} />
+        )}
 
-                {/* Authentication */}
-                {activeView === 'auth' && (
-                    <AuthView
-                        onLogin={handleLogin}
-                        onNavigate={navigate}
-                        onToast={showToast}
-                    />
-                )}
+        {/* About Us */}
+        {activeView === 'about' && (
+          <AboutView onNavigate={(v) => navigate(v)} />
+        )}
 
-                {/* Landlord dashboard */}
-                {activeView === 'landlord' && (
-                    <LandlordView
-                        user={user}
-                        onNavigate={navigate}
-                        onToast={showToast}
-                    />
-                )}
+        {/* Contact */}
+        {activeView === 'contact' && (
+          <ContactView onToast={showToast} />
+        )}
+      </main>
 
-                {/* About page */}
-                {activeView === 'about' && (
-                    <AboutView onNavigate={navigate} />
-                )}
+      {/* Site-wide footer */}
+      <Footer onNavigate={(v) => navigate(v)} />
 
-                {/* Contact page */}
-                {activeView === 'contact' && (
-                    <ContactView
-                        onNavigate={navigate}
-                        onToast={showToast}
-                    />
-                )}
-
-            </main>
-
-            <Footer onNavigate={navigate} />
+      {/* ── Toast notification (bottom-right / bottom-centre on mobile) ── */}
+      {toast && (
+        <div className="toast" role="alert" aria-live="polite">
+          {toast}
         </div>
-    );
+      )}
+    </>
+  );
 }
-
-

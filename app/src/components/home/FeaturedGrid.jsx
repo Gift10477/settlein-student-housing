@@ -1,11 +1,17 @@
 /**
  * FeaturedGrid.jsx — 3 Hand-Picked Featured Listings
  *
- * Loads featured properties from the Express/MySQL API.
+ * Renders the "Featured Listings ✨" section on the home page.
+ * Loads the 3 seed properties from the db and renders them
+ * as FeaturedCard components in a 3-column grid.
+ *
+ * Props:
+ *   onView   — fn(id) navigate to detail view
+ *   onToast  — fn(message) show toast
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import FeaturedCard from './FeaturedCard';
-import { fetchPropertiesFromAPI } from '../../store/db';
+import { getProperties } from '../../store/db';
 
 /** Configuration for each of the 3 featured slots */
 const FEATURED_CONFIG = [
@@ -15,42 +21,8 @@ const FEATURED_CONFIG = [
 ];
 
 export default function FeaturedGrid({ onView, onNavigate, onToast }) {
-  const [all, setAll] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchPropertiesFromAPI()
-      .then((data) => {
-        setAll(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError('Could not load featured properties.');
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return (
-      <section className="featured-section" id="featured-listings">
-        <div className="featured-inner">
-          <p>Loading featured properties...</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="featured-section" id="featured-listings">
-        <div className="featured-inner">
-          <p>{error}</p>
-        </div>
-      </section>
-    );
-  }
+  /** Load properties from the db (already seeded) */
+  const all = getProperties();
 
   return (
     <section className="featured-section" id="featured-listings">
@@ -65,26 +37,16 @@ export default function FeaturedGrid({ onView, onNavigate, onToast }) {
               <span className="featured-sub-accent">top universities</span>
             </p>
           </div>
-
-          <a
-            href="#"
-            className="view-all-link"
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigate('listings');
-            }}
-          >
+          <a href="#" className="view-all-link" onClick={e => { e.preventDefault(); onNavigate('listings'); }}>
             View all &nbsp;→
           </a>
         </div>
 
-        {/* 3-column card grid */}
+        {/* 3-column card grid (collapses on mobile) */}
         <div className="featured-grid">
-          {FEATURED_CONFIG.map((cfg) => {
-            const prop = all.find((p) => p.id === cfg.id);
-
+          {FEATURED_CONFIG.map(cfg => {
+            const prop = all.find(p => p.id === cfg.id);
             if (!prop) return null;
-
             return (
               <FeaturedCard
                 key={prop.id}

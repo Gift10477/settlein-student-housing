@@ -606,13 +606,3 @@ export function logoutUser() {
   db.currentUser = null;
   saveDB(db);
 }
-
-export async function fetchPropertiesFromAPI() {
-  const response = await fetch('http://localhost:5000/api/properties');
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch properties');
-  }
-
-  return await response.json();
-}
