@@ -34,7 +34,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
 
       {/* Header */}
       <div className="filter-sidebar-header">
-        <h3>🔧 Filters</h3>
+        <h3>Filters</h3>
         <button className="clear-filters-btn" onClick={onClear} aria-label="Clear all filters">
           Clear all
         </button>
@@ -154,7 +154,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
             onChange={e => onChange({ ...filters, verified: e.target.checked })}
           />
           <span className={`toggle-slider${filters.verified ? ' toggle-slider--on' : ''}`} />
-          <span>✓ Verified only</span>
+          <span>Verified only</span>
         </label>
       </div>
 

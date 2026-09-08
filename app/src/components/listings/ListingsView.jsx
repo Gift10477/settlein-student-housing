@@ -16,7 +16,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import FilterSidebar from './FilterSidebar';
 import PropertyCard from './PropertyCard';
-import { getProperties } from '../../store/db';
+import { getProperties as getLocalProperties } from '../../store/db';
+import { getProperties as fetchApiProperties } from '../../services/api';
 
 /** Default empty filter state */
 const DEFAULT_FILTERS = {
@@ -30,22 +31,56 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
   const [rawProps, setRawProps] = useState([]);
   const [loading,  setLoading]  = useState(true);
 
-  /* Simulate an async load on mount */
+  /* Load live properties from MySQL backend via Express */
+  const loadListings = () => {
+    setLoading(true);
+    fetchApiProperties()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRawProps(data);
+        } else {
+          setRawProps(getLocalProperties());
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Backend unavailable, falling back to local store:', err);
+        setRawProps(getLocalProperties());
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
-    const t = setTimeout(() => {
-      setRawProps(getProperties());
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(t);
+    loadListings();
   }, []);
 
   /* Apply filters and sort (memoised for performance) */
   const displayed = useMemo(() => {
-    let list = getProperties(filters);
+    let list = [...rawProps];
+    if (filters.campus && filters.campus !== 'all') {
+      list = list.filter(p => p.campus === filters.campus);
+    }
+    if (filters.type && filters.type !== 'all') {
+      list = list.filter(p => p.type === filters.type);
+    }
+    if (filters.maxPrice) {
+      list = list.filter(p => (Number(p.price) || 0) <= Number(filters.maxPrice));
+    }
+    if (filters.verified) {
+      list = list.filter(p => Boolean(p.verified));
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      list = list.filter(p =>
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.location && p.location.toLowerCase().includes(q)) ||
+        (p.type && p.type.toLowerCase().includes(q))
+      );
+    }
     return list.sort((a, b) => {
-      if (sortBy === 'price-asc')  return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
-      return a.title.localeCompare(b.title);
+      if (sortBy === 'price-asc')  return (Number(a.price) || 0) - (Number(b.price) || 0);
+      if (sortBy === 'price-desc') return (Number(b.price) || 0) - (Number(a.price) || 0);
+      return (a.title || '').localeCompare(b.title || '');
     });
   }, [filters, sortBy, rawProps]);
 
@@ -56,7 +91,7 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
       <div className="listings-page-header">
         <div className="listings-header-inner">
           <div>
-            <h1 className="listings-page-title">Find Your Room 🏠</h1>
+            <h1 className="listings-page-title">Find Your Room</h1>
             <p className="listings-page-sub">
               {rawProps.length} verified listings across Nairobi
             </p>
@@ -122,7 +157,6 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
             {/* Empty state */}
             {!loading && displayed.length === 0 && (
               <div className="spinner-wrap">
-                <span style={{ fontSize: '3rem' }}>🔍</span>
                 <p>No listings match your filters.</p>
                 <button className="btn" onClick={() => setFilters({ ...DEFAULT_FILTERS })}>
                   Clear Filters

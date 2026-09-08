@@ -15,7 +15,8 @@
  *  'landlord' — Landlord submission form
  */
 import React, { useState, useEffect, useCallback } from 'react';
-
+/* ── API assignment ── */
+import StudentsTable from './StudentsTable';
 /* ── Styles ── */
 import './styles/index.css';
 import './styles/pages.css';
@@ -28,22 +29,22 @@ import { initDB, getCurrentUser, logoutUser } from './store/db';
 
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
-import PageLoader   from './components/layout/PageLoader';
-import Header       from './components/layout/Header';
-import Footer       from './components/layout/Footer';
+import PageLoader from './components/layout/PageLoader';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 
 /* ── View components ── */
-import HeroCanvas    from './components/home/HeroCanvas';
-import FeaturedGrid  from './components/home/FeaturedGrid';
-import StatsBar      from './components/home/StatsBar';
-import WhyChooseUs   from './components/home/WhyChooseUs';
-import LandlordCTA   from './components/home/LandlordCTA';
-import ListingsView  from './components/listings/ListingsView';
-import DetailView    from './components/detail/DetailView';
-import AuthView      from './components/auth/AuthView';
-import LandlordView  from './components/landlord/LandlordView';
-import AboutView     from './components/pages/AboutView';
-import ContactView   from './components/pages/ContactView';
+import HeroCanvas from './components/home/HeroCanvas';
+import FeaturedGrid from './components/home/FeaturedGrid';
+import StatsBar from './components/home/StatsBar';
+import WhyChooseUs from './components/home/WhyChooseUs';
+import LandlordCTA from './components/home/LandlordCTA';
+import ListingsView from './components/listings/ListingsView';
+import DetailView from './components/detail/DetailView';
+import AuthView from './components/auth/AuthView';
+import LandlordView from './components/landlord/LandlordView';
+import AboutView from './components/pages/AboutView';
+import ContactView from './components/pages/ContactView';
 
 /** How long (ms) the splash screen stays visible on load */
 const SPLASH_DURATION = 2000;
@@ -62,12 +63,12 @@ export default function App() {
   const [isNavigating, setIsNavigating] = useState(false);
 
   /* ── View router ── */
-  const [activeView,    setActiveView]    = useState('home');
-  const [activePropId,  setActivePropId]  = useState(null);
+  const [activeView, setActiveView] = useState('home');
+  const [activePropId, setActivePropId] = useState(null);
   const [initialCampus, setInitialCampus] = useState('all');
 
   /* ── Auth ── */
-  const [currentUser,   setCurrentUser]   = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   /** Property ID the guest was trying to view before we sent them to auth */
   const [pendingPropId, setPendingPropId] = useState(null);
 
@@ -99,14 +100,14 @@ export default function App() {
    * ───────────────────────────────────────────────── */
   const navigate = useCallback((view, propId = null, campus = 'all') => {
     setIsNavigating(true);
-    
+
     // Allow loader to fade in before changing the DOM
     setTimeout(() => {
       setActiveView(view);
       setActivePropId(propId);
       if (campus !== 'all') setInitialCampus(campus);
       window.scrollTo({ top: 0, behavior: 'auto' });
-      
+
       // Keep loader on screen briefly while new view renders
       setTimeout(() => {
         setIsNavigating(false);

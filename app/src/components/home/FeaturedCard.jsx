@@ -212,7 +212,7 @@ export default function FeaturedCard({
             KES {property.price.toLocaleString()}/mo
           </span>
           {property.verified && (
-            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>✓ Verified</span>
+            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>Verified</span>
           )}
         </div>
 
@@ -223,11 +223,11 @@ export default function FeaturedCard({
           <span style={{ flex: 1 }}>{property.distance}</span>
           {property.vacant_units === 0 ? (
             <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '0.8rem' }}>
-              🚫 Sold Out
+              Sold Out
             </span>
           ) : property.vacant_units <= 3 ? (
             <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>
-              🔥 Only {property.vacant_units} left!
+              Only {property.vacant_units} left!
             </span>
           ) : null}
         </p>

@@ -53,7 +53,7 @@ export default function DetailView({ propId, onBack, onToast }) {
   const handleMpesa = (e) => {
     e.preventDefault();
     if (!phone) { onToast('Please enter your M-PESA phone number.'); return; }
-    onToast(`📲 M-PESA push sent to ${phone}. Check your phone!`);
+    onToast(`M-PESA push sent to ${phone}. Check your phone!`);
   };
 
   /** Submit a review */
@@ -70,7 +70,7 @@ export default function DetailView({ propId, onBack, onToast }) {
     <div className="view-container fade-in" id="view-detail">
       {/* Back button */}
       <button className="btn btn--gray back-btn" onClick={onBack}>
-        ← Back to Listings
+        &larr; Back to Listings
       </button>
 
       <div className="detail-card">
@@ -81,7 +81,7 @@ export default function DetailView({ propId, onBack, onToast }) {
           <img src={property.image} alt={property.title} style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: '8px', marginBottom: '1.5rem' }} />
         ) : (
           <div className="detail-image-placeholder">
-            🏠 {property.title}
+            {property.title}
           </div>
         )}
 
@@ -89,16 +89,16 @@ export default function DetailView({ propId, onBack, onToast }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
           <p className="price-tag">KES {property.price.toLocaleString()}/mo</p>
           {property.verified && (
-            <span className="verified-badge" style={{ position: 'static' }}>✓ Verified</span>
+            <span className="verified-badge" style={{ position: 'static' }}>Verified</span>
           )}
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{property.type}</span>
           {property.vacant_units === 0 ? (
             <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '0.85rem', marginLeft: 'auto' }}>
-              🚫 Sold Out
+              Sold Out
             </span>
           ) : property.vacant_units <= 3 ? (
             <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem', marginLeft: 'auto' }}>
-              🔥 Only {property.vacant_units} units left!
+              Only {property.vacant_units} units left!
             </span>
           ) : null}
         </div>
@@ -124,7 +124,7 @@ export default function DetailView({ propId, onBack, onToast }) {
               {property.location}
               {property.latitude && property.longitude && (
                 <a href={`https://maps.google.com/?q=${property.latitude},${property.longitude}`} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '0.8rem', color: '#2563eb', marginTop: '0.25rem', textDecoration: 'none' }}>
-                  📍 View on Google Maps
+                  View on Google Maps
                 </a>
               )}
             </p>
@@ -143,9 +143,9 @@ export default function DetailView({ propId, onBack, onToast }) {
            <div>
              <span style={{color: 'var(--text-secondary)'}}>Utilities Included:</span><br/>
              <span style={{fontSize: '0.85rem', display: 'flex', gap: '0.5rem', marginTop: '0.2rem', fontWeight: 500}}>
-               <span style={{ color: property.water_included ? '#10b981' : 'var(--text-muted)' }}>💧 Water</span>
-               <span style={{ color: property.wifi_included ? '#10b981' : 'var(--text-muted)' }}>📶 Wi-Fi</span>
-               <span style={{ color: property.garbage_included ? '#10b981' : 'var(--text-muted)' }}>🗑️ Garbage</span>
+               <span style={{ color: property.water_included ? '#10b981' : 'var(--text-muted)' }}>Water</span>
+               <span style={{ color: property.wifi_included ? '#10b981' : 'var(--text-muted)' }}>Wi-Fi</span>
+               <span style={{ color: property.garbage_included ? '#10b981' : 'var(--text-muted)' }}>Garbage</span>
              </span>
            </div>
         </div>
@@ -161,7 +161,7 @@ export default function DetailView({ propId, onBack, onToast }) {
         {/* M-PESA booking */}
         <div className="mpesa-card">
           <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            📲 Book via M-PESA
+            Book via M-PESA
           </h3>
           {property.vacant_units === 0 ? (
             <p style={{ fontSize: '0.88rem', color: '#ef4444', marginBottom: '1rem', fontWeight: 600 }}>

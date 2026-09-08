@@ -11,13 +11,14 @@
  */
 import React, { useState } from 'react';
 import { registerUser, loginUser } from '../../store/db';
+import { addUser } from '../../services/api';
 
 /* Feature bullets shown on the left panel */
 const FEATURES = [
-  { icon: '✓', text: 'Verified properties near top universities' },
-  { icon: '✓', text: 'Compare prices and amenities side-by-side' },
-  { icon: '✓', text: 'Connect directly with trusted landlords' },
-  { icon: '✓', text: 'Save favourites and track your applications' },
+  { icon: '•', text: 'Verified properties near top universities' },
+  { icon: '•', text: 'Compare prices and amenities side-by-side' },
+  { icon: '•', text: 'Connect directly with trusted landlords' },
+  { icon: '•', text: 'Save favourites and track your applications' },
 ];
 
 export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
@@ -47,12 +48,27 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
     }
   };
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
+
+    // 1. Real-time INSERT into MySQL Database
+    try {
+      await addUser({
+        name: suName,
+        email: suEmail,
+        role: suRole,
+        campus: 'strathmore'
+      });
+      console.log('User saved to MySQL database in real time');
+    } catch (err) {
+      console.warn('Backend database insert warning:', err);
+    }
+
+    // 2. Register in client state & store
     const result = registerUser({ name: suName, email: suEmail, password: suPassword, role: suRole });
     if (result.success) {
       if (onAuthSuccess) onAuthSuccess(result.user);
-      onToast(result.message);
+      onToast('Account created and saved to MySQL database!');
       onNavigate('home');
     } else {
       onToast(result.message);

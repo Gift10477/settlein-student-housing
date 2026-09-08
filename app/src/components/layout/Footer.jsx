@@ -182,7 +182,7 @@ export default function Footer({ onNavigate }) {
             © {year} SettleIn. All rights reserved.
           </p>
           <p className="footer-made-with">
-            Built for Kenyan students 🇰🇪
+            Built for Kenyan students
           </p>
         </div>
       </div>

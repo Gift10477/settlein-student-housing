@@ -1,7 +1,7 @@
 /**
  * FeaturedGrid.jsx — 3 Hand-Picked Featured Listings
  *
- * Renders the "Featured Listings ✨" section on the home page.
+ * Renders the "Featured Listings" section on the home page.
  * Loads the 3 seed properties from the db and renders them
  * as FeaturedCard components in a 3-column grid.
  *
