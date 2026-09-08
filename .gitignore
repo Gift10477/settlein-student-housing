@@ -21,6 +21,3 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
-
-.env
-node_modules
