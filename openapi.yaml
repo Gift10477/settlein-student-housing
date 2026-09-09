@@ -1,0 +1,787 @@
+openapi: 3.0.0
+info:
+  title: SettleIn Student Accommodation API
+  description: >-
+    Official OpenAPI 3.0 contract for SettleIn (Team 1) — Student Housing & Accommodation Marketplace.
+    This contract specifies the interface exposed to our downstream ring partner, StudySync (Team 2),
+    for student residential locations, accommodation study amenities, lease timelines, verified student
+    identities, and co-living group inquiries.
+  version: 1.0.0
+  contact:
+    name: SettleIn Engineering Team (Gift Githaka, Ian Kungu, Yahya Abdi, Tiffany Olale)
+    email: support@settlein.strathmore.edu
+servers:
+  - url: http://localhost:5000
+    description: Local development backend server
+  - url: https://api.settlein.strathmore.edu
+    description: Production staging API server
+
+paths:
+  /api/v1/users/{id}/residence-area:
+    get:
+      summary: Retrieve student residential estate and campus proximity
+      description: >-
+        Returns the student's residential estate name, distance to campus (in kilometers),
+        and coarse geolocation coordinates. Used by StudySync to calculate central meetup locations
+        and recommend convenient study group venues equidistant between group members.
+        Exact building and room numbers are redacted for student privacy.
+      operationId: getStudentResidenceArea
+      tags:
+        - Students & Location
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique integer ID of the student user.
+          schema:
+            type: integer
+            minimum: 1
+            example: 1042
+      responses:
+        '200':
+          description: Student residential area and proximity details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidenceAreaResponse'
+              example:
+                user_id: 1042
+                estate_name: "Madaraka Estate"
+                distance_to_campus_km: 0.85
+                nearest_campus: "Madaraka Main Campus"
+                coordinates:
+                  latitude: -1.3090
+                  longitude: 36.8126
+                cached_at: "2026-09-09T08:30:00Z"
+        '401':
+          description: Unauthorized — Missing or invalid authentication token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Authentication token is missing or expired."
+                status_code: 401
+                timestamp: "2026-09-09T09:45:00Z"
+        '404':
+          description: User not found or residential location not configured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "User with ID 1042 does not have an active residential area on file."
+                status_code: 404
+                timestamp: "2026-09-09T09:45:00Z"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "An unexpected error occurred while querying student residence data."
+                status_code: 500
+                timestamp: "2026-09-09T09:45:00Z"
+
+  /api/v1/accommodations/{id}/study-amenities:
+    get:
+      summary: Retrieve study-related amenities for an accommodation
+      description: >-
+        Returns study-conducive accommodation amenities including verified Wi-Fi rating,
+        bandwidth speed, dedicated desk space, backup generator availability, and enforced
+        quiet-hours policy. Used by StudySync to identify optimal host residences for project work sprints.
+      operationId: getAccommodationStudyAmenities
+      tags:
+        - Accommodations & Amenities
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique integer ID of the accommodation / property.
+          schema:
+            type: integer
+            minimum: 1
+            example: 305
+      responses:
+        '200':
+          description: Study amenities retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyAmenitiesResponse'
+              example:
+                accommodation_id: 305
+                accommodation_name: "Strathmore View Executive Hostels"
+                wifi_rating: 4.8
+                wifi_speed_mbps: 50
+                has_dedicated_desk: true
+                has_backup_generator: true
+                quiet_hours:
+                  starts_at: "22:00"
+                  ends_at: "06:00"
+                  policy_enforced: true
+                max_study_guests: 4
+                last_inspected_at: "2026-08-15T10:00:00Z"
+        '401':
+          description: Unauthorized — Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Invalid credentials provided."
+                status_code: 401
+                timestamp: "2026-09-09T09:45:00Z"
+        '404':
+          description: Accommodation not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Accommodation with ID 305 was not found."
+                status_code: 404
+                timestamp: "2026-09-09T09:45:00Z"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Unable to retrieve accommodation amenities."
+                status_code: 500
+                timestamp: "2026-09-09T09:45:00Z"
+
+  /api/v1/students/{id}/lease-timeline:
+    get:
+      summary: Retrieve a student's lease timeline and relocation dates
+      description: >-
+        Returns a student's confirmed move-in date, lease start date, and lease expiration date.
+        Allows StudySync to mark relocation dates as unavailable or busy on group collaboration calendars.
+      operationId: getStudentLeaseTimeline
+      tags:
+        - Students & Location
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique integer ID of the student.
+          schema:
+            type: integer
+            minimum: 1
+            example: 1042
+      responses:
+        '200':
+          description: Student lease timeline retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaseTimelineResponse'
+              example:
+                student_id: 1042
+                booking_id: 782
+                lease_status: "active"
+                move_in_date: "2026-08-20T08:00:00Z"
+                lease_start_date: "2026-09-01"
+                lease_end_date: "2026-12-15"
+                relocation_window_start: "2026-08-19T00:00:00Z"
+                relocation_window_end: "2026-08-22T23:59:59Z"
+                is_relocating: false
+        '401':
+          description: Unauthorized — Access restricted to verified group peers or the student.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "You are not authorized to view lease schedules for this user."
+                status_code: 401
+                timestamp: "2026-09-09T09:45:00Z"
+        '404':
+          description: Student or lease booking record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "No active lease timeline found for student ID 1042."
+                status_code: 404
+                timestamp: "2026-09-09T09:45:00Z"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Database failure when querying lease timeline."
+                status_code: 500
+                timestamp: "2026-09-09T09:45:00Z"
+
+  /api/v1/users/{id}/public-profile:
+    get:
+      summary: Retrieve verified student public profile and university affiliation
+      description: >-
+        Returns verified student public identity including display name, university affiliation,
+        campus branch, degree program, and verified status. Prevents duplicate credential entry
+        and verifies peer identity for study collaboration.
+      operationId: getStudentPublicProfile
+      tags:
+        - User Identity & Profiles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique integer ID of the user.
+          schema:
+            type: integer
+            minimum: 1
+            example: 1042
+      responses:
+        '200':
+          description: Public profile retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfileResponse'
+              example:
+                user_id: 1042
+                display_name: "Tiffany Akello"
+                university_affiliation: "Strathmore University"
+                campus_branch: "Madaraka Main Campus"
+                course_of_study: "Bachelor of Business Information Technology (BBIT)"
+                year_of_study: 3
+                is_verified_student: true
+                avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+                created_at: "2025-01-15T14:22:10Z"
+        '401':
+          description: Unauthorized request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Missing bearer authentication token."
+                status_code: 401
+                timestamp: "2026-09-09T09:45:00Z"
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "User ID 1042 does not exist."
+                status_code: 404
+                timestamp: "2026-09-09T09:45:00Z"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Unable to fetch student profile."
+                status_code: 500
+                timestamp: "2026-09-09T09:45:00Z"
+
+  /api/v1/accommodations/group-inquiries:
+    post:
+      summary: Submit a shared-housing co-living group inquiry
+      description: >-
+        Creates a new co-living inquiry for a collaborative study group. Dispatches alerts
+        to matched multi-bedroom properties near campus and notifies all group participants.
+      operationId: createGroupInquiry
+      tags:
+        - Accommodations & Amenities
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Inquiry details including participating students, budget, and campus target.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupInquiryRequest'
+            example:
+              group_id: "grp-studysync-981"
+              initiator_student_id: 1042
+              member_student_ids:
+                - 1042
+                - 1043
+                - 1088
+              target_campus: "Madaraka Main Campus"
+              preferred_room_type: "3-bedroom"
+              max_budget_per_person_kes: 18000
+              move_in_target_date: "2026-09-01"
+              notes: "Prefer apartments within walking distance to Strathmore Phase 2 gate with backup generator."
+      responses:
+        '201':
+          description: Group accommodation inquiry created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupInquiryResponse'
+              example:
+                inquiry_id: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
+                group_id: "grp-studysync-981"
+                status: "submitted"
+                matched_accommodations_count: 4
+                created_at: "2026-09-09T09:45:00Z"
+                message: "Group accommodation inquiry recorded successfully. Notifications dispatched to group members."
+        '400':
+          description: Bad request — Missing or invalid payload attributes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Field 'member_student_ids' must contain at least 2 students."
+                status_code: 400
+                timestamp: "2026-09-09T09:45:00Z"
+        '401':
+          description: Unauthorized — Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Authorization token invalid or expired."
+                status_code: 401
+                timestamp: "2026-09-09T09:45:00Z"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Failed to persist group inquiry to database."
+                status_code: 500
+                timestamp: "2026-09-09T09:45:00Z"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Enter the JWT bearer token received upon login.
+
+  schemas:
+    Coordinates:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90.0
+          maximum: 90.0
+          description: Coarse latitude coordinate of the residential area.
+          example: -1.3090
+        longitude:
+          type: number
+          format: double
+          minimum: -180.0
+          maximum: 180.0
+          description: Coarse longitude coordinate of the residential area.
+          example: 36.8126
+
+    ResidenceAreaResponse:
+      type: object
+      required:
+        - user_id
+        - estate_name
+        - distance_to_campus_km
+        - nearest_campus
+        - coordinates
+        - cached_at
+      properties:
+        user_id:
+          type: integer
+          description: Unique student user identifier.
+          example: 1042
+        estate_name:
+          type: string
+          description: Residential estate or neighborhood name.
+          example: "Madaraka Estate"
+        distance_to_campus_km:
+          type: number
+          format: float
+          minimum: 0.0
+          description: Walking/transit distance to main campus gate in kilometers.
+          example: 0.85
+        nearest_campus:
+          type: string
+          enum:
+            - "Madaraka Main Campus"
+            - "Town Campus"
+            - "Parklands Campus"
+          description: Reference university campus branch.
+          example: "Madaraka Main Campus"
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        cached_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp representing when location data was cached.
+          example: "2026-09-09T08:30:00Z"
+
+    QuietHours:
+      type: object
+      required:
+        - starts_at
+        - ends_at
+        - policy_enforced
+      properties:
+        starts_at:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          description: Quiet hours start time in 24-hour format (HH:mm).
+          example: "22:00"
+        ends_at:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          description: Quiet hours end time in 24-hour format (HH:mm).
+          example: "06:00"
+        policy_enforced:
+          type: boolean
+          description: Whether the quiet hours curfew is strictly enforced by property management.
+          example: true
+
+    StudyAmenitiesResponse:
+      type: object
+      required:
+        - accommodation_id
+        - accommodation_name
+        - wifi_rating
+        - wifi_speed_mbps
+        - has_dedicated_desk
+        - has_backup_generator
+        - quiet_hours
+        - max_study_guests
+        - last_inspected_at
+      properties:
+        accommodation_id:
+          type: integer
+          description: Unique identifier of the accommodation.
+          example: 305
+        accommodation_name:
+          type: string
+          description: Name of the hostel or apartment building.
+          example: "Strathmore View Executive Hostels"
+        wifi_rating:
+          type: number
+          format: float
+          minimum: 1.0
+          maximum: 5.0
+          description: Average Wi-Fi quality and stability score rated by student residents.
+          example: 4.8
+        wifi_speed_mbps:
+          type: integer
+          minimum: 0
+          description: Measured internet connection speed in megabits per second (Mbps).
+          example: 50
+        has_dedicated_desk:
+          type: boolean
+          description: Indicates if units include a dedicated study desk and ergonomic chair.
+          example: true
+        has_backup_generator:
+          type: boolean
+          description: Indicates whether a generator or solar backup is available during power outages.
+          example: true
+        quiet_hours:
+          $ref: '#/components/schemas/QuietHours'
+        max_study_guests:
+          type: integer
+          minimum: 0
+          description: Maximum allowed study group visitors per room at any one time.
+          example: 4
+        last_inspected_at:
+          type: string
+          format: date-time
+          description: Date when amenities were last inspected and verified by campus accommodation officers.
+          example: "2026-08-15T10:00:00Z"
+
+    LeaseTimelineResponse:
+      type: object
+      required:
+        - student_id
+        - booking_id
+        - lease_status
+        - move_in_date
+        - lease_start_date
+        - lease_end_date
+        - relocation_window_start
+        - relocation_window_end
+        - is_relocating
+      properties:
+        student_id:
+          type: integer
+          description: Unique student user identifier.
+          example: 1042
+        booking_id:
+          type: integer
+          description: Unique lease or booking identifier.
+          example: 782
+        lease_status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - active
+            - terminated
+            - completed
+          description: Current lifecycle state of the accommodation lease.
+          example: "active"
+        move_in_date:
+          type: string
+          format: date-time
+          description: Exact scheduled move-in arrival timestamp (ISO 8601).
+          example: "2026-08-20T08:00:00Z"
+        lease_start_date:
+          type: string
+          format: date
+          description: Official contractual tenancy start date.
+          example: "2026-09-01"
+        lease_end_date:
+          type: string
+          format: date
+          description: Official contractual tenancy expiration date.
+          example: "2026-12-15"
+        relocation_window_start:
+          type: string
+          format: date-time
+          description: Beginning of the student's moving window for calendar unavailability.
+          example: "2026-08-19T00:00:00Z"
+        relocation_window_end:
+          type: string
+          format: date-time
+          description: End of the student's moving window for calendar unavailability.
+          example: "2026-08-22T23:59:59Z"
+        is_relocating:
+          type: boolean
+          description: True if the current server timestamp falls inside the relocation window.
+          example: false
+
+    PublicProfileResponse:
+      type: object
+      required:
+        - user_id
+        - display_name
+        - university_affiliation
+        - campus_branch
+        - course_of_study
+        - year_of_study
+        - is_verified_student
+        - avatar_url
+        - created_at
+      properties:
+        user_id:
+          type: integer
+          description: Unique student user identifier.
+          example: 1042
+        display_name:
+          type: string
+          description: Full display name of the verified student.
+          example: "Tiffany Akello"
+        university_affiliation:
+          type: string
+          description: Official university or college institution name.
+          example: "Strathmore University"
+        campus_branch:
+          type: string
+          enum:
+            - "Madaraka Main Campus"
+            - "Town Campus"
+            - "Parklands Campus"
+          description: Specific branch campus the student attends.
+          example: "Madaraka Main Campus"
+        course_of_study:
+          type: string
+          description: Academic degree program or course.
+          example: "Bachelor of Business Information Technology (BBIT)"
+        year_of_study:
+          type: integer
+          minimum: 1
+          maximum: 6
+          description: Current academic year of study (1 to 6).
+          example: 3
+        is_verified_student:
+          type: boolean
+          description: Flag stating whether university affiliation has been authenticated.
+          example: true
+        avatar_url:
+          type: string
+          format: uri
+          description: Direct HTTPS link to student profile picture.
+          example: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+        created_at:
+          type: string
+          format: date-time
+          description: Account registration timestamp.
+          example: "2025-01-15T14:22:10Z"
+
+    CreateGroupInquiryRequest:
+      type: object
+      required:
+        - group_id
+        - initiator_student_id
+        - member_student_ids
+        - target_campus
+        - preferred_room_type
+        - max_budget_per_person_kes
+        - move_in_target_date
+      properties:
+        group_id:
+          type: string
+          description: Identifier of the StudySync collaboration group making the inquiry.
+          example: "grp-studysync-981"
+        initiator_student_id:
+          type: integer
+          minimum: 1
+          description: Student ID of the group leader or admin placing the request.
+          example: 1042
+        member_student_ids:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items:
+            type: integer
+            minimum: 1
+          description: Array of student IDs of group members seeking joint accommodation.
+          example:
+            - 1042
+            - 1043
+            - 1088
+        target_campus:
+          type: string
+          enum:
+            - "Madaraka Main Campus"
+            - "Town Campus"
+            - "Parklands Campus"
+          description: Primary university campus the accommodation must be proximate to.
+          example: "Madaraka Main Campus"
+        preferred_room_type:
+          type: string
+          enum:
+            - "1-bedroom"
+            - "2-bedroom"
+            - "3-bedroom"
+            - "4-bedroom"
+            - "shared-apartment"
+          description: Layout type of interest for shared living.
+          example: "3-bedroom"
+        max_budget_per_person_kes:
+          type: integer
+          minimum: 1000
+          maximum: 200000
+          description: Maximum monthly rent budget per individual in Kenyan Shillings (KES).
+          example: 18000
+        move_in_target_date:
+          type: string
+          format: date
+          description: Desired move-in date for the semester.
+          example: "2026-09-01"
+        notes:
+          type: string
+          maxLength: 500
+          description: Additional group preferences or accommodation requirements.
+          example: "Prefer apartments within walking distance to Strathmore Phase 2 gate with backup generator."
+
+    GroupInquiryResponse:
+      type: object
+      required:
+        - inquiry_id
+        - group_id
+        - status
+        - matched_accommodations_count
+        - created_at
+        - message
+      properties:
+        inquiry_id:
+          type: string
+          format: uuid
+          description: Unique UUID assigned to the group inquiry.
+          example: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
+        group_id:
+          type: string
+          description: Corresponding study group identifier.
+          example: "grp-studysync-981"
+        status:
+          type: string
+          enum:
+            - submitted
+            - reviewing
+            - matched
+            - contacted
+          description: Current progression status of the inquiry.
+          example: "submitted"
+        matched_accommodations_count:
+          type: integer
+          minimum: 0
+          description: Number of currently listed units matching the group's specifications.
+          example: 4
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the inquiry was registered.
+          example: "2026-09-09T09:45:00Z"
+        message:
+          type: string
+          description: Confirmation message for caller display.
+          example: "Group accommodation inquiry recorded successfully. Notifications dispatched to group members."
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - status_code
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Short error classification title.
+          example: "Bad Request"
+        message:
+          type: string
+          description: Human-readable explanation of why the request failed.
+          example: "Field 'member_student_ids' must contain at least 2 students."
+        status_code:
+          type: integer
+          description: HTTP status code corresponding to the error.
+          example: 400
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the error occurred.
+          example: "2026-09-09T09:45:00Z"
