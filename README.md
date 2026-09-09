@@ -1,4 +1,4 @@
-#  SettleIn - Student Housing Marketplac
+#  SettleIn - Student Housing Marketplace
 
 ![SettleIn Banner](https://via.placeholder.com/1200x400/2563EB/FFFFFF?text=SettleIn+-+Student+Housing+Made+Easy)
 
