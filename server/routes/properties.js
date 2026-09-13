@@ -2,38 +2,108 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+// Helper to format property row
+function formatProperty(p) {
+  let amenitiesArr = [];
+  if (Array.isArray(p.amenities)) {
+    amenitiesArr = p.amenities;
+  } else if (typeof p.amenities === 'string') {
+    try {
+      amenitiesArr = JSON.parse(p.amenities);
+    } catch {
+      amenitiesArr = p.amenities.split(',').map((a) => a.trim()).filter(Boolean);
+    }
+  }
+
+  let imagesArr = [];
+  if (Array.isArray(p.images)) {
+    imagesArr = p.images;
+  } else if (typeof p.images === 'string' && p.images.trim()) {
+    try {
+      imagesArr = JSON.parse(p.images);
+    } catch {
+      imagesArr = [p.images];
+    }
+  } else if (p.image) {
+    imagesArr = [p.image];
+  }
+
+  let reviewsArr = [];
+  if (Array.isArray(p.reviews)) {
+    reviewsArr = p.reviews;
+  } else if (typeof p.reviews === 'string' && p.reviews.trim()) {
+    try {
+      reviewsArr = JSON.parse(p.reviews);
+    } catch {
+      reviewsArr = [];
+    }
+  }
+
+  return {
+    ...p,
+    price: Number(p.price) || 0,
+    vacant_units: p.vacant_units !== undefined ? Number(p.vacant_units) : 1,
+    verified: Boolean(p.verified),
+    amenities: amenitiesArr,
+    images: imagesArr,
+    reviews: reviewsArr,
+  };
+}
+
 // 1. SELECT (Read all properties)
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM properties ORDER BY created_at DESC');
-    const formatted = rows.map((p) => {
-      let amenitiesArr = [];
-      if (Array.isArray(p.amenities)) {
-        amenitiesArr = p.amenities;
-      } else if (typeof p.amenities === 'string') {
-        try {
-          amenitiesArr = JSON.parse(p.amenities);
-        } catch {
-          amenitiesArr = p.amenities.split(',').map((a) => a.trim()).filter(Boolean);
-        }
-      }
-      return {
-        ...p,
-        price: Number(p.price) || 0,
-        verified: Boolean(p.verified),
-        amenities: amenitiesArr,
-      };
-    });
-    res.json(formatted);
+    const { campus, type, maxPrice, minPrice, search } = req.query;
+    let query = 'SELECT * FROM properties WHERE 1=1';
+    const params = [];
+
+    if (campus && campus !== 'all') {
+      query += ' AND campus = ?';
+      params.push(campus);
+    }
+    if (type && type !== 'all') {
+      query += ' AND LOWER(type) LIKE ?';
+      params.push(`%${type.toLowerCase()}%`);
+    }
+    if (maxPrice) {
+      query += ' AND price <= ?';
+      params.push(Number(maxPrice));
+    }
+    if (minPrice) {
+      query += ' AND price >= ?';
+      params.push(Number(minPrice));
+    }
+    if (search) {
+      query += ' AND (LOWER(title) LIKE ? OR LOWER(location) LIKE ? OR LOWER(type) LIKE ?)';
+      const s = `%${search.toLowerCase()}%`;
+      params.push(s, s, s);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const [rows] = await db.query(query, params);
+    res.json(rows.map(formatProperty));
   } catch (err) {
     console.error('SELECT Error:', err);
     res.status(500).json({ error: 'Failed to fetch properties from database' });
   }
 });
 
+// 2. SELECT single property by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM properties WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+    res.json(formatProperty(rows[0]));
+  } catch (err) {
+    console.error('SELECT single property error:', err);
+    res.status(500).json({ error: 'Failed to fetch property details' });
+  }
+});
 
-// 2. INSERT (Create a new property)
-
+// 3. INSERT (Create a new property)
 router.post('/', async (req, res) => {
   try {
     const {
@@ -49,11 +119,21 @@ router.post('/', async (req, res) => {
       whatsapp,
       vacant_units,
       amenities,
-      image
+      image,
+      images,
+      latitude,
+      longitude,
+      security_deposit,
+      booking_fee,
+      water_included,
+      wifi_included,
+      garbage_included,
+      gender_policy,
+      furnishing_status
     } = req.body;
 
     const id = `prop-${Date.now()}`;
-    const defaultImg = image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80';
+    const defaultImg = image || (images && images[0]) || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80';
 
     const sql = `
       INSERT INTO properties (
@@ -72,7 +152,7 @@ router.post('/', async (req, res) => {
       title,
       type || 'Bedsitter',
       Number(price) || 0,
-      location,
+      location || 'Nairobi',
       campus || 'strathmore',
       distance || 'Near Campus',
       true,
@@ -89,7 +169,24 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       message: 'Property inserted successfully into database',
-      id: id
+      id: id,
+      property: {
+        id,
+        title,
+        type: type || 'Bedsitter',
+        price: Number(price) || 0,
+        location: location || 'Nairobi',
+        campus: campus || 'strathmore',
+        distance: distance || 'Near Campus',
+        verified: true,
+        image: defaultImg,
+        description: description || '',
+        landlord: landlord || 'Independent Landlord',
+        phone: phone || '',
+        whatsapp: whatsapp || phone || '',
+        vacant_units: Number(vacant_units) || 1,
+        amenities: Array.isArray(amenities) ? amenities : amenitiesStr.split(',').map(a => a.trim()).filter(Boolean),
+      }
     });
   } catch (err) {
     console.error('INSERT Error:', err);
@@ -97,7 +194,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 3. UPDATE (Update an existing property)
+// 4. UPDATE (Update an existing property)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,13 +222,13 @@ router.put('/:id', async (req, res) => {
     `;
 
     const values = [
-      title,
-      type,
-      price ? Number(price) : null,
-      location,
-      campus,
-      vacant_units ? Number(vacant_units) : null,
-      description,
+      title !== undefined ? title : null,
+      type !== undefined ? type : null,
+      price !== undefined ? Number(price) : null,
+      location !== undefined ? location : null,
+      campus !== undefined ? campus : null,
+      vacant_units !== undefined ? Number(vacant_units) : null,
+      description !== undefined ? description : null,
       id
     ];
 
@@ -145,6 +242,21 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     console.error('UPDATE Error:', err);
     res.status(500).json({ error: 'Failed to update property in database' });
+  }
+});
+
+// 5. DELETE (Delete a property)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.query('DELETE FROM properties WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+    res.json({ message: 'Property deleted successfully from database' });
+  } catch (err) {
+    console.error('DELETE Error:', err);
+    res.status(500).json({ error: 'Failed to delete property from database' });
   }
 });
 

@@ -24,8 +24,8 @@ import './styles/pages.css';
 /* ── Hooks ── */
 import { useTheme } from './hooks/useTheme';
 
-/* ── Data ── */
-import { initDB, getCurrentUser, logoutUser } from './store/db';
+/* ── Data & Auth ── */
+import { getCurrentUser, logoutUser } from './services/api';
 
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
@@ -77,10 +77,9 @@ export default function App() {
   const [toast, setToast] = useState(null); // string | null
 
   /* ─────────────────────────────────────────────────
-   * Initialisation — seed the db and dismiss splash
+   * Initialisation — check active session and dismiss splash
    * ───────────────────────────────────────────────── */
   useEffect(() => {
-    initDB();
     setCurrentUser(getCurrentUser());
     const t = setTimeout(() => setSplashLoaded(true), SPLASH_DURATION);
     return () => clearTimeout(t);

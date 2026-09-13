@@ -1,28 +1,48 @@
 /**
- * FeaturedGrid.jsx — 3 Hand-Picked Featured Listings
+ * FeaturedGrid.jsx — Hand-Picked Featured Listings
  *
  * Renders the "Featured Listings" section on the home page.
- * Loads the 3 seed properties from the db and renders them
- * as FeaturedCard components in a 3-column grid.
+ * Loads verified properties from MySQL backend database via Express
+ * and renders them as FeaturedCard components in a 3-column grid.
  *
  * Props:
- *   onView   — fn(id) navigate to detail view
- *   onToast  — fn(message) show toast
+ *   onView     — fn(id) navigate to detail view
+ *   onNavigate — fn(viewId) navigate to listings
+ *   onToast    — fn(message) show toast
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import FeaturedCard from './FeaturedCard';
-import { getProperties } from '../../store/db';
+import { getProperties } from '../../services/api';
 
-/** Configuration for each of the 3 featured slots */
-const FEATURED_CONFIG = [
-  { id: 'prop-001', accent: 'emerald', badgeStyle: 'budget', popular: false },
-  { id: 'prop-002', accent: 'blue', badgeStyle: 'value', popular: true },
-  { id: 'prop-003', accent: 'purple', badgeStyle: 'premium', popular: false },
+/** Preset styling accents for the top featured cards */
+const CARD_ACCENTS = [
+  { accent: 'emerald', badgeStyle: 'budget', popular: false },
+  { accent: 'blue', badgeStyle: 'value', popular: true },
+  { accent: 'purple', badgeStyle: 'premium', popular: false },
 ];
 
 export default function FeaturedGrid({ onView, onNavigate, onToast }) {
-  /** Load properties from the db (already seeded) */
-  const all = getProperties();
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    getProperties()
+      .then((data) => {
+        if (mounted) {
+          setProperties(Array.isArray(data) ? data.slice(0, 3) : []);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load featured properties from database:', err);
+        if (mounted) {
+          setProperties([]);
+          setLoading(false);
+        }
+      });
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <section className="featured-section" id="featured-listings">
@@ -43,23 +63,32 @@ export default function FeaturedGrid({ onView, onNavigate, onToast }) {
         </div>
 
         {/* 3-column card grid (collapses on mobile) */}
-        <div className="featured-grid">
-          {FEATURED_CONFIG.map(cfg => {
-            const prop = all.find(p => p.id === cfg.id);
-            if (!prop) return null;
-            return (
-              <FeaturedCard
-                key={prop.id}
-                property={prop}
-                accent={cfg.accent}
-                badgeStyle={cfg.badgeStyle}
-                popular={cfg.popular}
-                onView={onView}
-                onToast={onToast}
-              />
-            );
-          })}
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
+            <p>Loading featured properties from database...</p>
+          </div>
+        ) : properties.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
+            <p>No featured properties available at the moment.</p>
+          </div>
+        ) : (
+          <div className="featured-grid">
+            {properties.map((prop, idx) => {
+              const cfg = CARD_ACCENTS[idx % CARD_ACCENTS.length];
+              return (
+                <FeaturedCard
+                  key={prop.id}
+                  property={prop}
+                  accent={cfg.accent}
+                  badgeStyle={cfg.badgeStyle}
+                  popular={cfg.popular}
+                  onView={onView}
+                  onToast={onToast}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

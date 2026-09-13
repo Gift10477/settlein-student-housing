@@ -10,8 +10,7 @@
  *   onToast    — fn(message) to show a toast notification
  */
 import React, { useState } from 'react';
-import { registerUser, loginUser } from '../../store/db';
-import { addUser } from '../../services/api';
+import { registerUser, loginUser } from '../../services/api';
 
 /* Feature bullets shown on the left panel */
 const FEATURES = [
@@ -36,9 +35,9 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
   const [suPassword, setSuPassword] = useState('');
   const [suRole,     setSuRole]     = useState('student');
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    const result = loginUser(siEmail, siPassword);
+    const result = await loginUser(siEmail, siPassword);
     if (result.success) {
       if (onAuthSuccess) onAuthSuccess(result.user);
       onToast(result.message);
@@ -50,25 +49,17 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    const result = await registerUser({
+      name: suName,
+      email: suEmail,
+      password: suPassword,
+      role: suRole,
+      campus: 'strathmore'
+    });
 
-    // 1. Real-time INSERT into MySQL Database
-    try {
-      await addUser({
-        name: suName,
-        email: suEmail,
-        role: suRole,
-        campus: 'strathmore'
-      });
-      console.log('User saved to MySQL database in real time');
-    } catch (err) {
-      console.warn('Backend database insert warning:', err);
-    }
-
-    // 2. Register in client state & store
-    const result = registerUser({ name: suName, email: suEmail, password: suPassword, role: suRole });
     if (result.success) {
       if (onAuthSuccess) onAuthSuccess(result.user);
-      onToast('Account created and saved to MySQL database!');
+      onToast('Account created and registered in MySQL database!');
       onNavigate('home');
     } else {
       onToast(result.message);

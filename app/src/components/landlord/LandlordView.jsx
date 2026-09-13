@@ -10,7 +10,6 @@
  */
 import React, { useState, useEffect } from 'react';
 import { addProperty, getProperties, updateProperty } from '../../services/api';
-import { addPendingListing } from '../../store/db';
 
 export default function LandlordView({ onToast }) {
   /** Mode: 'submit' (INSERT) or 'manage' (SELECT & UPDATE) */
@@ -36,7 +35,7 @@ export default function LandlordView({ onToast }) {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error('Error fetching properties from database:', err);
         setLoading(false);
       });
   };
@@ -60,28 +59,13 @@ export default function LandlordView({ onToast }) {
     };
 
     try {
-      // 1. Persist to MySQL via Express
       await addProperty(payload);
-      // 2. Also keep local fallback in sync
-      addPendingListing({
-        ...form,
-        price: Number(form.price),
-        amenities: form.amenities.split(',').map(a => a.trim()).filter(Boolean),
-        verified: false,
-      });
-
       onToast('Listing inserted into MySQL database successfully!');
       // Reset form
       setForm({ title: '', type: 'Bedsitter', price: '', location: '', campus: 'strathmore', description: '', phone: '', amenities: '' });
     } catch (err) {
       console.error(err);
-      onToast('Could not connect to backend, saved locally.');
-      addPendingListing({
-        ...form,
-        price: Number(form.price),
-        amenities: form.amenities.split(',').map(a => a.trim()).filter(Boolean),
-        verified: false,
-      });
+      onToast(`Failed to insert listing into database: ${err.message}`);
     }
   };
 

@@ -12,7 +12,7 @@
  *   style    — optional React inline style (for animation delays)
  */
 import React, { useState } from 'react';
-import { toggleSaved, isSaved } from '../../store/db';
+import { toggleSaved, isSaved } from '../../services/api';
 
 export default function PropertyCard({ property, onView, onToast, style }) {
   const [saved, setSaved] = useState(() => isSaved(property.id));

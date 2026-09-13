@@ -18,7 +18,7 @@
  *   onToast    — fn(message) show toast
  */
 import React, { useState } from 'react';
-import { toggleSaved, isSaved } from '../../store/db';
+import { toggleSaved, isSaved } from '../../services/api';
 
 function HeartIcon({ filled }) {
   return (

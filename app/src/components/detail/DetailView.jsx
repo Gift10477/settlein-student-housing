@@ -1,21 +1,21 @@
 /**
  * DetailView.jsx — Property Detail Page
  *
- * Shows the full property profile:
- *  - Image placeholder with property icon
- *  - Price, type, and verified badge
- *  - Info grid (landlord, phone, location, campus)
- *  - M-PESA booking card
+ * Shows the full property profile from MySQL database:
+ *  - Real property photo / gallery
+ *  - Price, room type, and verified badge
+ *  - Property details (landlord, phone, location, nearest campus, utilities)
+ *  - M-PESA booking simulation
  *  - Amenities list
- *  - Reviews section with star ratings and review form
+ *  - Reviews section
  *
  * Props:
  *   propId    — id of the property to display
  *   onBack    — fn() navigate back to listings
  *   onToast   — fn(message) show toast
  */
-import React, { useState } from 'react';
-import { getPropertyById, addReview } from '../../store/db';
+import React, { useState, useEffect } from 'react';
+import { getPropertyById } from '../../services/api';
 
 /** Render N filled stars + empty remainder */
 function StarRating({ value }) {
@@ -27,7 +27,9 @@ function StarRating({ value }) {
 }
 
 export default function DetailView({ propId, onBack, onToast }) {
-  const property = getPropertyById(propId);
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   /* M-PESA phone input state */
   const [phone, setPhone] = useState('');
@@ -36,14 +38,47 @@ export default function DetailView({ propId, onBack, onToast }) {
   const [reviewName,    setReviewName]    = useState('');
   const [reviewStars,   setReviewStars]   = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviews, setReviews] = useState([]);
 
-  /* Local reviews — start from db, allow adding without full re-render */
-  const [reviews, setReviews] = useState(property?.reviews ?? []);
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getPropertyById(propId)
+      .then((data) => {
+        if (mounted) {
+          if (data) {
+            setProperty(data);
+            setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+          } else {
+            setError('Property not found in database.');
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch property details:', err);
+        if (mounted) {
+          setError('Failed to fetch property details from database.');
+          setLoading(false);
+        }
+      });
 
-  if (!property) {
+    return () => { mounted = false; };
+  }, [propId]);
+
+  if (loading) {
     return (
       <div className="view-container">
-        <p>Property not found.</p>
+        <p>Loading property details from database...</p>
+        <button className="btn btn--gray back-btn" onClick={onBack}>← Back to Listings</button>
+      </div>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <div className="view-container">
+        <p>{error || 'Property not found.'}</p>
         <button className="btn btn--gray back-btn" onClick={onBack}>← Back to Listings</button>
       </div>
     );
@@ -60,11 +95,16 @@ export default function DetailView({ propId, onBack, onToast }) {
   const handleReview = (e) => {
     e.preventDefault();
     const newReview = { name: reviewName, stars: reviewStars, comment: reviewComment };
-    addReview(property.id, newReview);
     setReviews(prev => [...prev, newReview]);
     setReviewName(''); setReviewComment(''); setReviewStars(5);
     onToast('Review submitted! Thank you.');
   };
+
+  const amenitiesList = Array.isArray(property.amenities)
+    ? property.amenities
+    : typeof property.amenities === 'string'
+      ? property.amenities.split(',').map(a => a.trim()).filter(Boolean)
+      : [];
 
   return (
     <div className="view-container fade-in" id="view-detail">
@@ -74,7 +114,7 @@ export default function DetailView({ propId, onBack, onToast }) {
       </button>
 
       <div className="detail-card">
-        {/* Property image placeholder / real image */}
+        {/* Property image */}
         {property.images && property.images.length > 0 ? (
           <img src={property.images[0]} alt={property.title} style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: '8px', marginBottom: '1.5rem' }} />
         ) : property.image ? (
@@ -87,7 +127,7 @@ export default function DetailView({ propId, onBack, onToast }) {
 
         {/* Price and verified status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-          <p className="price-tag">KES {property.price.toLocaleString()}/mo</p>
+          <p className="price-tag">KES {Number(property.price || 0).toLocaleString()}/mo</p>
           {property.verified && (
             <span className="verified-badge" style={{ position: 'static' }}>Verified</span>
           )}
@@ -110,11 +150,11 @@ export default function DetailView({ propId, onBack, onToast }) {
 
         {/* Info grid */}
         <div className="detail-grid">
-          <div><h4>Landlord</h4><p>{property.landlord}</p></div>
+          <div><h4>Landlord</h4><p>{property.landlord || 'Independent Landlord'}</p></div>
           <div>
             <h4>Phone / WhatsApp</h4>
             <p>
-              <span style={{ filter: 'blur(4px)', userSelect: 'none' }}>{property.whatsapp || property.phone}</span>
+              <span style={{ filter: 'blur(4px)', userSelect: 'none' }}>{property.whatsapp || property.phone || '+254 700 000 000'}</span>
               <br/><span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Unlocked after booking</span>
             </p>
           </div>
@@ -129,7 +169,7 @@ export default function DetailView({ propId, onBack, onToast }) {
               )}
             </p>
           </div>
-          <div><h4>Nearest Campus</h4><p>{property.distance}</p></div>
+          <div><h4>Nearest Campus</h4><p>{property.distance || property.campus}</p></div>
           <div><h4>Gender Policy</h4><p>{property.gender_policy || 'Mixed'}</p></div>
           <div><h4>Furnishing</h4><p>{property.furnishing_status || 'Unfurnished'}</p></div>
         </div>
@@ -137,9 +177,9 @@ export default function DetailView({ propId, onBack, onToast }) {
         {/* Cost Breakdown */}
         <h3 style={{ fontWeight: 700, margin: '1.5rem 0 0.75rem', color: 'var(--text-primary)' }}>Cost Breakdown & Utilities</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
-           <div><span style={{color: 'var(--text-secondary)'}}>Monthly Rent:</span><br/><strong>KES {property.price.toLocaleString()}</strong></div>
-           <div><span style={{color: 'var(--text-secondary)'}}>Security Deposit:</span><br/><strong>KES {(property.security_deposit || 0).toLocaleString()}</strong></div>
-           <div><span style={{color: 'var(--text-secondary)'}}>Booking Fee:</span><br/><strong>KES {(property.booking_fee || 0).toLocaleString()}</strong></div>
+           <div><span style={{color: 'var(--text-secondary)'}}>Monthly Rent:</span><br/><strong>KES {Number(property.price || 0).toLocaleString()}</strong></div>
+           <div><span style={{color: 'var(--text-secondary)'}}>Security Deposit:</span><br/><strong>KES {Number(property.security_deposit || property.price || 0).toLocaleString()}</strong></div>
+           <div><span style={{color: 'var(--text-secondary)'}}>Booking Fee:</span><br/><strong>KES {Number(property.booking_fee || 1000).toLocaleString()}</strong></div>
            <div>
              <span style={{color: 'var(--text-secondary)'}}>Utilities Included:</span><br/>
              <span style={{fontSize: '0.85rem', display: 'flex', gap: '0.5rem', marginTop: '0.2rem', fontWeight: 500}}>
@@ -153,7 +193,7 @@ export default function DetailView({ propId, onBack, onToast }) {
         {/* Amenities */}
         <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Amenities</h3>
         <div style={{ marginBottom: '2rem' }}>
-          {property.amenities.map(a => (
+          {amenitiesList.map(a => (
             <span key={a} className="amenity-tag">{a}</span>
           ))}
         </div>
@@ -203,7 +243,7 @@ export default function DetailView({ propId, onBack, onToast }) {
             <div key={i} className="review-item">
               <div className="review-header">
                 <strong>{r.name}</strong>
-                <StarRating value={r.stars} />
+                <StarRating value={r.stars || 5} />
               </div>
               <p className="review-comment">{r.comment}</p>
             </div>

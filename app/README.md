@@ -30,15 +30,16 @@ The platform is divided into two primary experiences tailored for students seeki
 - **🌓 Light & Dark Mode**: Built-in theme management via React hooks and CSS data attributes for a comfortable viewing experience.
 - **🔐 Mock Authentication**: Custom sign-in and sign-up flows that conditionally render portal access and protect sensitive property details.
 - **⚡ Custom Routing**: Fast, lightweight custom routing built entirely in React state (`activeView`), avoiding external router dependencies.
-- **💾 Local Data Store**: Fully functional mock database utilizing the browser's Local Storage (`db.js`) to persist users, listings, reviews, and pending submissions.
+- **🗄️ Backend Data Layer**: Direct integration with Express and MySQL database (`services/api.js`) to persist users, listings, inquiries, and properties.
 
 ---
 
 ## 🚀 Tech Stack
 
 - **Frontend Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Backend API**: Express.js + MySQL / XAMPP
 - **Styling**: Pure, modular Vanilla CSS (Custom properties, Flexbox/Grid architecture)
-- **State Management**: React Hooks + Local Storage DB
+- **State Management**: React Hooks + API Service
 - **Icons**: Inline SVG / CSS
 
 *(Note: This project relies on vanilla CSS and custom React logic rather than heavy frameworks like Tailwind or React Router, ensuring a deeply customized and lightweight architecture.)*
@@ -55,7 +56,7 @@ app/
 │   ├── assets/       # Static assets and images
 │   ├── components/   # UI components grouped by feature (auth, detail, home, landlord, listings, etc.)
 │   ├── hooks/        # Custom React hooks (e.g., useTheme.js)
-│   ├── store/        # Data layer and mock database (db.js utilizing localStorage)
+│   ├── services/     # Backend API integration client (api.js connecting to Express/MySQL)
 │   ├── styles/       # Modular CSS files (variables.css, pages.css, index.css)
 │   ├── App.jsx       # Root Application Component (handles routing & theme)
 │   └── main.jsx      # Application entry point

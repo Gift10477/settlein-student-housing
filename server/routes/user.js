@@ -68,7 +68,30 @@ router.post('/', async (req, res) => {
   }
 });
 
-//update a user
+// POST login / authenticate user
+router.post('/login', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required to sign in' });
+    }
+
+    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'No account found with this email address' });
+    }
+
+    res.json({
+      message: 'Signed in successfully!',
+      user: rows[0]
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed due to a database error' });
+  }
+});
+
+// Update a user
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -88,13 +111,13 @@ router.put('/:id', async (req, res) => {
     `;
 
     const values = [
-      name,
-      email,
-      course,
-      campus,
-      residence_area,
-      phone,
-      role,
+      name !== undefined ? name : null,
+      email !== undefined ? email : null,
+      course !== undefined ? course : null,
+      campus !== undefined ? campus : null,
+      residence_area !== undefined ? residence_area : null,
+      phone !== undefined ? phone : null,
+      role !== undefined ? role : null,
       id
     ];
 
@@ -108,6 +131,21 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     console.error('UPDATE user error:', err);
     res.status(500).json({ error: 'Failed to update user in database' });
+  }
+});
+
+// Delete a user
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ message: 'User deleted successfully from database' });
+  } catch (err) {
+    console.error('DELETE user error:', err);
+    res.status(500).json({ error: 'Failed to delete user from database' });
   }
 });
 

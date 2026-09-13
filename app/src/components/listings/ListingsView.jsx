@@ -16,8 +16,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import FilterSidebar from './FilterSidebar';
 import PropertyCard from './PropertyCard';
-import { getProperties as getLocalProperties } from '../../store/db';
-import { getProperties as fetchApiProperties } from '../../services/api';
+import { getProperties } from '../../services/api';
 
 /** Default empty filter state */
 const DEFAULT_FILTERS = {
@@ -34,19 +33,16 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
   /* Load live properties from MySQL backend via Express */
   const loadListings = () => {
     setLoading(true);
-    fetchApiProperties()
+    getProperties()
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setRawProps(data);
-        } else {
-          setRawProps(getLocalProperties());
-        }
+        setRawProps(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {
-        console.warn('Backend unavailable, falling back to local store:', err);
-        setRawProps(getLocalProperties());
+        console.error('Error fetching properties from MySQL database:', err);
+        setRawProps([]);
         setLoading(false);
+        if (onToast) onToast('Failed to load listings from database. Please check your backend connection.');
       });
   };
 
