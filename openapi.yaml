@@ -86,14 +86,13 @@ paths:
                 status_code: 500
                 timestamp: "2026-09-09T09:45:00Z"
 
-  /api/v1/accommodations/{id}/study-amenities:
+  /api/v1/properties/{id}/study-amenities:
     get:
-      summary: Retrieve study-related amenities for an accommodation
+      summary: Retrieve property study amenities
       description: >-
-        Returns study-conducive accommodation amenities including verified Wi-Fi rating,
-        bandwidth speed, dedicated desk space, backup generator availability, and enforced
-        quiet-hours policy. Used by StudySync to identify optimal host residences for project work sprints.
-      operationId: getAccommodationStudyAmenities
+        Returns study-conducive amenities for a property, including verified Wi-Fi quality,
+        dedicated desk space, backup power, quiet-hours policy, and the latest inspection time.
+      operationId: getPropertyStudyAmenities
       tags:
         - Accommodations & Amenities
       security:
@@ -102,22 +101,22 @@ paths:
         - name: id
           in: path
           required: true
-          description: Unique integer ID of the accommodation / property.
+          description: Unique string ID of the property.
           schema:
-            type: integer
-            minimum: 1
-            example: 305
+            type: string
+            minLength: 1
+            example: "prop-305"
       responses:
         '200':
-          description: Study amenities retrieved successfully.
+          description: Property study amenities retrieved successfully.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudyAmenitiesResponse'
               example:
-                accommodation_id: 305
+                accommodation_id: "prop-305"
                 accommodation_name: "Strathmore View Executive Hostels"
-                wifi_rating: 4.8
+                wifi_rating: 4.5
                 wifi_speed_mbps: 50
                 has_dedicated_desk: true
                 has_backup_generator: true
@@ -126,27 +125,16 @@ paths:
                   ends_at: "06:00"
                   policy_enforced: true
                 max_study_guests: 4
-                last_inspected_at: "2026-08-15T10:00:00Z"
-        '401':
-          description: Unauthorized — Authentication token missing or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                message: "Invalid credentials provided."
-                status_code: 401
-                timestamp: "2026-09-09T09:45:00Z"
+                last_inspected_at: "2026-09-22T09:00:00Z"
         '404':
-          description: Accommodation not found.
+          description: Property not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "Not Found"
-                message: "Accommodation with ID 305 was not found."
+                message: "Property not found"
                 status_code: 404
                 timestamp: "2026-09-09T09:45:00Z"
         '500':
@@ -157,7 +145,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "Internal Server Error"
-                message: "Unable to retrieve accommodation amenities."
+                message: "Failed to fetch property study amenities"
                 status_code: 500
                 timestamp: "2026-09-09T09:45:00Z"
 
@@ -436,16 +424,13 @@ components:
         starts_at:
           type: string
           pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
-          description: Quiet hours start time in 24-hour format (HH:mm).
           example: "22:00"
         ends_at:
           type: string
           pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
-          description: Quiet hours end time in 24-hour format (HH:mm).
           example: "06:00"
         policy_enforced:
           type: boolean
-          description: Whether the quiet hours curfew is strictly enforced by property management.
           example: true
 
     StudyAmenitiesResponse:
@@ -462,45 +447,166 @@ components:
         - last_inspected_at
       properties:
         accommodation_id:
-          type: integer
-          description: Unique identifier of the accommodation.
-          example: 305
+          type: string
+          description: Property identifier from the properties table.
+          example: "prop-305"
         accommodation_name:
           type: string
-          description: Name of the hostel or apartment building.
+          description: Property title.
           example: "Strathmore View Executive Hostels"
         wifi_rating:
           type: number
           format: float
-          minimum: 1.0
-          maximum: 5.0
-          description: Average Wi-Fi quality and stability score rated by student residents.
-          example: 4.8
+          minimum: 0
+          maximum: 5
+          example: 4.5
         wifi_speed_mbps:
           type: integer
           minimum: 0
-          description: Measured internet connection speed in megabits per second (Mbps).
           example: 50
         has_dedicated_desk:
           type: boolean
-          description: Indicates if units include a dedicated study desk and ergonomic chair.
           example: true
         has_backup_generator:
           type: boolean
-          description: Indicates whether a generator or solar backup is available during power outages.
           example: true
         quiet_hours:
           $ref: '#/components/schemas/QuietHours'
         max_study_guests:
           type: integer
           minimum: 0
-          description: Maximum allowed study group visitors per room at any one time.
           example: 4
         last_inspected_at:
           type: string
           format: date-time
-          description: Date when amenities were last inspected and verified by campus accommodation officers.
-          example: "2026-08-15T10:00:00Z"
+          example: "2026-09-22T09:00:00Z"
+
+    Property:
+      type: object
+      required:
+        - id
+        - title
+        - type
+        - price
+        - location
+        - campus
+        - verified
+        - vacant_units
+        - amenities
+        - images
+        - reviews
+      properties:
+        id:
+          type: string
+          description: Property identifier from the database.
+          example: "prop-305"
+        title:
+          type: string
+          description: Property title.
+          example: "Strathmore View Executive Hostels"
+        type:
+          type: string
+          description: Accommodation type.
+          example: "Hostel Room"
+        price:
+          type: integer
+          minimum: 0
+          description: Monthly rent in Kenyan shillings.
+          example: 18000
+        location:
+          type: string
+          description: Property location or estate.
+          example: "Madaraka Estate"
+        campus:
+          type: string
+          description: Campus identifier.
+          example: "strathmore"
+        distance:
+          type: string
+          nullable: true
+          description: Distance or commute description.
+          example: "0.8 km (~10 mins walk)"
+        verified:
+          type: boolean
+          description: Verification flag normalized by the API.
+          example: true
+        image:
+          type: string
+          nullable: true
+          description: Primary image URL.
+        description:
+          type: string
+          nullable: true
+        landlord:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        whatsapp:
+          type: string
+          nullable: true
+        vacant_units:
+          type: integer
+          minimum: 0
+          description: Number of currently vacant units.
+          example: 4
+        amenities:
+          type: array
+          description: Amenities normalized from the database string into an array.
+          items:
+            type: string
+          example:
+            - "Wi-Fi"
+            - "Water"
+        images:
+          type: array
+          description: Image list normalized by the API.
+          items:
+            type: string
+            format: uri
+        reviews:
+          type: array
+          description: Reviews normalized by the API; the current properties table does not contain a reviews column.
+          items: {}
+        created_at:
+          type: string
+          format: date-time
+        wifi_rating:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 5
+        wifi_speed_mbps:
+          type: integer
+          nullable: true
+          minimum: 0
+        has_dedicated_desk:
+          type: boolean
+          nullable: true
+        has_backup_generator:
+          type: boolean
+          nullable: true
+        quiet_hours_start:
+          type: string
+          nullable: true
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        quiet_hours_end:
+          type: string
+          nullable: true
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        quiet_hours_policy_enforced:
+          type: boolean
+          nullable: true
+        max_study_guests:
+          type: integer
+          nullable: true
+          minimum: 0
+        last_inspected_at:
+          type: string
+          format: date-time
+          nullable: true
 
     LeaseTimelineResponse:
       type: object

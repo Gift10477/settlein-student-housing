@@ -2,6 +2,53 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+const studyAmenityColumns = {
+  wifi_rating: 'DECIMAL(2,1) NULL',
+  wifi_speed_mbps: 'INT NULL',
+  has_dedicated_desk: 'TINYINT(1) NULL',
+  has_backup_generator: 'TINYINT(1) NULL',
+  quiet_hours_start: 'VARCHAR(5) NULL',
+  quiet_hours_end: 'VARCHAR(5) NULL',
+  quiet_hours_policy_enforced: 'TINYINT(1) NULL',
+  max_study_guests: 'INT NULL',
+  last_inspected_at: 'TIMESTAMP NULL'
+};
+
+async function initializeStudyAmenities() {
+  try {
+    const [columns] = await db.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'properties'`
+    );
+    const existingColumns = new Set(columns.map((column) => column.COLUMN_NAME));
+
+    for (const [columnName, definition] of Object.entries(studyAmenityColumns)) {
+      if (!existingColumns.has(columnName)) {
+        await db.query(`ALTER TABLE properties ADD COLUMN ${columnName} ${definition}`);
+      }
+    }
+
+    await db.query(`
+      UPDATE properties
+      SET
+        wifi_rating = COALESCE(wifi_rating, 4.5),
+        wifi_speed_mbps = COALESCE(wifi_speed_mbps, 50),
+        has_dedicated_desk = COALESCE(has_dedicated_desk, 1),
+        has_backup_generator = COALESCE(has_backup_generator, 1),
+        quiet_hours_start = COALESCE(quiet_hours_start, '22:00'),
+        quiet_hours_end = COALESCE(quiet_hours_end, '06:00'),
+        quiet_hours_policy_enforced = COALESCE(quiet_hours_policy_enforced, 1),
+        max_study_guests = COALESCE(max_study_guests, 4),
+        last_inspected_at = COALESCE(last_inspected_at, CURRENT_TIMESTAMP)
+    `);
+  } catch (err) {
+    console.error('Study amenities migration error:', err);
+  }
+}
+
+initializeStudyAmenities();
+
 // Helper to format property row
 function formatProperty(p) {
   let amenitiesArr = [];
@@ -50,6 +97,24 @@ function formatProperty(p) {
   };
 }
 
+function formatStudyAmenities(p) {
+  return {
+    accommodation_id: p.id,
+    accommodation_name: p.title,
+    wifi_rating: p.wifi_rating === null ? null : Number(p.wifi_rating),
+    wifi_speed_mbps: p.wifi_speed_mbps === null ? null : Number(p.wifi_speed_mbps),
+    has_dedicated_desk: Boolean(p.has_dedicated_desk),
+    has_backup_generator: Boolean(p.has_backup_generator),
+    quiet_hours: {
+      starts_at: p.quiet_hours_start,
+      ends_at: p.quiet_hours_end,
+      policy_enforced: Boolean(p.quiet_hours_policy_enforced)
+    },
+    max_study_guests: p.max_study_guests === null ? null : Number(p.max_study_guests),
+    last_inspected_at: p.last_inspected_at
+  };
+}
+
 // 1. SELECT (Read all properties)
 router.get('/', async (req, res) => {
   try {
@@ -86,6 +151,31 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('SELECT Error:', err);
     res.status(500).json({ error: 'Failed to fetch properties from database' });
+  }
+});
+
+// 2. GET study amenities for a property
+router.get('/:id/study-amenities', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM properties WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Property not found',
+        status_code: 404,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.json(formatStudyAmenities(rows[0]));
+  } catch (err) {
+    console.error('SELECT property study amenities error:', err);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch property study amenities',
+      status_code: 500,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -129,7 +219,16 @@ router.post('/', async (req, res) => {
       wifi_included,
       garbage_included,
       gender_policy,
-      furnishing_status
+      furnishing_status,
+      wifi_rating,
+      wifi_speed_mbps,
+      has_dedicated_desk,
+      has_backup_generator,
+      quiet_hours_start,
+      quiet_hours_end,
+      quiet_hours_policy_enforced,
+      max_study_guests,
+      last_inspected_at
     } = req.body;
 
     const id = `prop-${Date.now()}`;
@@ -139,8 +238,11 @@ router.post('/', async (req, res) => {
       INSERT INTO properties (
         id, title, type, price, location, campus, distance,
         verified, image, description, landlord, phone, whatsapp,
-        vacant_units, amenities
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        vacant_units, amenities, wifi_rating, wifi_speed_mbps,
+        has_dedicated_desk, has_backup_generator, quiet_hours_start,
+        quiet_hours_end, quiet_hours_policy_enforced, max_study_guests,
+        last_inspected_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const amenitiesStr = Array.isArray(amenities)
@@ -162,7 +264,16 @@ router.post('/', async (req, res) => {
       phone || '',
       whatsapp || phone || '',
       Number(vacant_units) || 1,
-      amenitiesStr
+      amenitiesStr,
+      wifi_rating !== undefined ? Number(wifi_rating) : 4.5,
+      wifi_speed_mbps !== undefined ? Number(wifi_speed_mbps) : 50,
+      has_dedicated_desk !== undefined ? Boolean(has_dedicated_desk) : true,
+      has_backup_generator !== undefined ? Boolean(has_backup_generator) : true,
+      quiet_hours_start || '22:00',
+      quiet_hours_end || '06:00',
+      quiet_hours_policy_enforced !== undefined ? Boolean(quiet_hours_policy_enforced) : true,
+      max_study_guests !== undefined ? Number(max_study_guests) : 4,
+      last_inspected_at || new Date()
     ];
 
     await db.query(sql, values);
@@ -186,6 +297,15 @@ router.post('/', async (req, res) => {
         whatsapp: whatsapp || phone || '',
         vacant_units: Number(vacant_units) || 1,
         amenities: Array.isArray(amenities) ? amenities : amenitiesStr.split(',').map(a => a.trim()).filter(Boolean),
+        wifi_rating: wifi_rating !== undefined ? Number(wifi_rating) : 4.5,
+        wifi_speed_mbps: wifi_speed_mbps !== undefined ? Number(wifi_speed_mbps) : 50,
+        has_dedicated_desk: has_dedicated_desk !== undefined ? Boolean(has_dedicated_desk) : true,
+        has_backup_generator: has_backup_generator !== undefined ? Boolean(has_backup_generator) : true,
+        quiet_hours_start: quiet_hours_start || '22:00',
+        quiet_hours_end: quiet_hours_end || '06:00',
+        quiet_hours_policy_enforced: quiet_hours_policy_enforced !== undefined ? Boolean(quiet_hours_policy_enforced) : true,
+        max_study_guests: max_study_guests !== undefined ? Number(max_study_guests) : 4,
+        last_inspected_at: last_inspected_at || new Date().toISOString()
       }
     });
   } catch (err) {
