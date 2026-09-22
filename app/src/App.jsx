@@ -190,6 +190,7 @@ export default function App() {
             propId={activePropId}
             onBack={() => navigate('listings')}
             onToast={showToast}
+            currentUser={currentUser}
           />
         )}
 

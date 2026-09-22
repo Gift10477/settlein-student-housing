@@ -21,10 +21,10 @@ paths:
     get:
       summary: Retrieve student residential estate and campus proximity
       description: >-
-        Returns the student's residential estate name, distance to campus (in kilometers),
-        and coarse geolocation coordinates. Used by StudySync to calculate central meetup locations
-        and recommend convenient study group venues equidistant between group members.
-        Exact building and room numbers are redacted for student privacy.
+        Returns the student's residential estate name, calculated distance/commute to campus,
+        and nearest campus branch. Used by StudySync to identify central meetup locations
+        and recommend convenient study group venues without requiring exact GPS coordinates.
+        Exact building and room numbers remain private.
       operationId: getStudentResidenceArea
       tags:
         - Students & Location
@@ -49,11 +49,8 @@ paths:
               example:
                 user_id: 1042
                 estate_name: "Madaraka Estate"
-                distance_to_campus_km: 0.85
                 nearest_campus: "Madaraka Main Campus"
-                coordinates:
-                  latitude: -1.3090
-                  longitude: 36.8126
+                distance_to_campus: "0.8 km (~10 mins walk)"
                 cached_at: "2026-09-09T08:30:00Z"
         '401':
           description: Unauthorized — Missing or invalid authentication token.
@@ -164,12 +161,12 @@ paths:
                 status_code: 500
                 timestamp: "2026-09-09T09:45:00Z"
 
-  /api/v1/students/{id}/lease-timeline:
+  /api/v1/users/{id}/lease-timeline:
     get:
-      summary: Retrieve a student's lease timeline and relocation dates
+      summary: Retrieve a user's lease timeline and relocation dates
       description: >-
-        Returns a student's confirmed move-in date, lease start date, and lease expiration date.
-        Allows StudySync to mark relocation dates as unavailable or busy on group collaboration calendars.
+        Returns a student user's confirmed move-in date, expected arrival time, lease start date, and lease expiration date.
+        Allows StudySync to mark relocation periods as unavailable or busy on group collaboration calendars.
       operationId: getStudentLeaseTimeline
       tags:
         - Students & Location
@@ -179,28 +176,32 @@ paths:
         - name: id
           in: path
           required: true
-          description: Unique integer ID of the student.
+          description: Unique integer ID of the student user.
           schema:
             type: integer
             minimum: 1
             example: 1042
       responses:
         '200':
-          description: Student lease timeline retrieved successfully.
+          description: Student lease timeline retrieved successfully from database.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeaseTimelineResponse'
               example:
-                student_id: 1042
+                user_id: 1042
+                student_id: "193923"
                 booking_id: 782
+                accommodation_name: "Strathmore View Executive Hostels"
                 lease_status: "active"
                 move_in_date: "2026-08-20T08:00:00Z"
+                expected_arrival_time: "10:00 AM"
                 lease_start_date: "2026-09-01"
                 lease_end_date: "2026-12-15"
                 relocation_window_start: "2026-08-19T00:00:00Z"
                 relocation_window_end: "2026-08-22T23:59:59Z"
                 is_relocating: false
+                booked_at: "2026-09-22T07:30:00Z"
         '401':
           description: Unauthorized — Access restricted to verified group peers or the student.
           content:
@@ -220,7 +221,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "Not Found"
-                message: "No active lease timeline found for student ID 1042."
+                message: "No active lease timeline found for user ID 1042."
                 status_code: 404
                 timestamp: "2026-09-09T09:45:00Z"
         '500':
@@ -394,35 +395,13 @@ components:
       description: Enter the JWT bearer token received upon login.
 
   schemas:
-    Coordinates:
-      type: object
-      required:
-        - latitude
-        - longitude
-      properties:
-        latitude:
-          type: number
-          format: double
-          minimum: -90.0
-          maximum: 90.0
-          description: Coarse latitude coordinate of the residential area.
-          example: -1.3090
-        longitude:
-          type: number
-          format: double
-          minimum: -180.0
-          maximum: 180.0
-          description: Coarse longitude coordinate of the residential area.
-          example: 36.8126
-
     ResidenceAreaResponse:
       type: object
       required:
         - user_id
         - estate_name
-        - distance_to_campus_km
         - nearest_campus
-        - coordinates
+        - distance_to_campus
         - cached_at
       properties:
         user_id:
@@ -431,24 +410,16 @@ components:
           example: 1042
         estate_name:
           type: string
-          description: Residential estate or neighborhood name.
+          description: Residential estate or neighborhood name where the student currently resides.
           example: "Madaraka Estate"
-        distance_to_campus_km:
-          type: number
-          format: float
-          minimum: 0.0
-          description: Walking/transit distance to main campus gate in kilometers.
-          example: 0.85
         nearest_campus:
           type: string
-          enum:
-            - "Madaraka Main Campus"
-            - "Town Campus"
-            - "Parklands Campus"
-          description: Reference university campus branch.
+          description: Automatically calculated nearest university campus branch.
           example: "Madaraka Main Campus"
-        coordinates:
-          $ref: '#/components/schemas/Coordinates'
+        distance_to_campus:
+          type: string
+          description: Calculated walking or transit commute distance to the nearest campus.
+          example: "0.8 km (~10 mins walk)"
         cached_at:
           type: string
           format: date-time
@@ -534,7 +505,7 @@ components:
     LeaseTimelineResponse:
       type: object
       required:
-        - student_id
+        - user_id
         - booking_id
         - lease_status
         - move_in_date
@@ -543,15 +514,24 @@ components:
         - relocation_window_start
         - relocation_window_end
         - is_relocating
+        - booked_at
       properties:
-        student_id:
+        user_id:
           type: integer
           description: Unique student user identifier.
           example: 1042
+        student_id:
+          type: string
+          description: Official university student registration number.
+          example: "193923"
         booking_id:
           type: integer
           description: Unique lease or booking identifier.
           example: 782
+        accommodation_name:
+          type: string
+          description: Name of the booked accommodation property.
+          example: "Strathmore View Executive Hostels"
         lease_status:
           type: string
           enum:
@@ -567,6 +547,10 @@ components:
           format: date-time
           description: Exact scheduled move-in arrival timestamp (ISO 8601).
           example: "2026-08-20T08:00:00Z"
+        expected_arrival_time:
+          type: string
+          description: Expected time of arrival on move-in day.
+          example: "10:00 AM"
         lease_start_date:
           type: string
           format: date
@@ -591,6 +575,11 @@ components:
           type: boolean
           description: True if the current server timestamp falls inside the relocation window.
           example: false
+        booked_at:
+          type: string
+          format: date-time
+          description: Real-time ISO 8601 timestamp when the booking was submitted and recorded in database.
+          example: "2026-09-22T07:30:00Z"
 
     PublicProfileResponse:
       type: object

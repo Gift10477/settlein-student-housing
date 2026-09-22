@@ -30,12 +30,12 @@ Every needs statement strictly adheres to the required format:
 ---
 
 ### Statement 1: Student Residential Area & Proximity to Campus
-> **“StudySync needs to read a student’s residential estate name, distance to campus, and general location coordinates in order to calculate central meetup locations and suggest convenient physical study group venues midpoint between team members.”**
+> **“StudySync needs to read a student’s residential estate name, calculated distance to campus, and nearest campus branch in order to calculate central meetup locations and suggest convenient physical study group venues midpoint between team members.”**
 
 * **Verb & Resource:** `GET /api/v1/users/{id}/residence-area`
 * **Freshness:** Semi-static (cached for 24 hours; students rarely change residences mid-semester).
 * **Volume:** Low — called on-demand when a study group schedules an offline study session or opens the group meetup map.
-* **Auth & Security:** Required (Authenticated student Bearer token). For privacy, exact room numbers and building names are redacted; only neighborhood level (e.g., *"Madaraka"*, *"Parklands"*) and distance are exposed.
+* **Auth & Security:** Required (Authenticated student Bearer token). For privacy, exact room numbers and building names are redacted; only neighborhood level (e.g., *"Madaraka"*, *"Parklands"*), nearest campus branch, and calculated walking/transit commute distance are exposed.
 * **Entity Mapping:** Mapped to `Entity 1: User Accounts & Profiles` and `Entity 3: Properties & Accommodations (location, distance_to_campus)`.
 
 ---
@@ -54,7 +54,7 @@ Every needs statement strictly adheres to the required format:
 ### Statement 3: Move-in & Semester Lease Timeline Dates
 > **“StudySync needs to read student lease start and move-in dates in order to automatically flag student relocation periods as busy/unavailable on the group collaboration calendar.”**
 
-* **Verb & Resource:** `GET /api/v1/students/{id}/lease-timeline`
+* **Verb & Resource:** `GET /api/v1/users/{id}/lease-timeline`
 * **Freshness:** Updated within 1 hour of booking confirmation.
 * **Volume:** Low — called once per group calendar synchronization or schedule conflict check.
 * **Auth & Security:** Required (Scoped to verified peers sharing an active project group).

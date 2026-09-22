@@ -30,10 +30,14 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
   const [siPassword, setSiPassword] = useState('');
 
   /* Sign Up state */
-  const [suName,     setSuName]     = useState('');
-  const [suEmail,    setSuEmail]    = useState('');
-  const [suPassword, setSuPassword] = useState('');
-  const [suRole,     setSuRole]     = useState('student');
+  const [suName,          setSuName]          = useState('');
+  const [suEmail,         setSuEmail]         = useState('');
+  const [suPhone,         setSuPhone]         = useState('');
+  const [suStudentId,     setSuStudentId]     = useState('');
+  const [suCourse,        setSuCourse]        = useState('Bachelor of Business Information Technology (BBIT)');
+  const [suResidenceArea, setSuResidenceArea] = useState('Madaraka Estate');
+  const [suPassword,      setSuPassword]      = useState('');
+  const [suRole,          setSuRole]          = useState('student');
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -52,6 +56,10 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
     const result = await registerUser({
       name: suName,
       email: suEmail,
+      phone: suPhone,
+      student_id: suStudentId,
+      course: suCourse,
+      residence_area: suResidenceArea,
       password: suPassword,
       role: suRole,
       campus: 'strathmore'
@@ -168,6 +176,67 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                     value={suEmail} onChange={e => setSuEmail(e.target.value)}
                     required autoComplete="email"
                   />
+                </div>
+
+                <div className="auth-input-group">
+                  <label htmlFor="su-studentid">Student ID / Registration Number</label>
+                  <input
+                    id="su-studentid" type="text" placeholder="e.g. 193923 or STU-4021"
+                    value={suStudentId} onChange={e => setSuStudentId(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="auth-input-group">
+                  <label htmlFor="su-phone">Phone Number</label>
+                  <input
+                    id="su-phone" type="tel" placeholder="e.g. +254 712 345 678"
+                    value={suPhone} onChange={e => setSuPhone(e.target.value)}
+                    required autoComplete="tel"
+                  />
+                </div>
+
+                <div className="auth-input-group">
+                  <label htmlFor="su-course">Course / Programme of Study</label>
+                  <select
+                    id="su-course"
+                    value={suCourse}
+                    onChange={e => setSuCourse(e.target.value)}
+                    required
+                  >
+                    <option value="Bachelor of Business Information Technology (BBIT)">Bachelor of Business Information Technology (BBIT)</option>
+                    <option value="Bachelor of Science in Informatics and Computer Science">Bachelor of Science in Informatics and Computer Science</option>
+                    <option value="Bachelor of Commerce (BCom)">Bachelor of Commerce (BCom)</option>
+                    <option value="Bachelor of Laws (LLB)">Bachelor of Laws (LLB)</option>
+                    <option value="Bachelor of Science in Financial Economics">Bachelor of Science in Financial Economics</option>
+                    <option value="Bachelor of Science in Hospitality Management">Bachelor of Science in Hospitality Management</option>
+                    <option value="Bachelor of Science in Telecommunications">Bachelor of Science in Telecommunications</option>
+                    <option value="Diploma in Business Information Technology">Diploma in Business Information Technology</option>
+                    <option value="General Undergraduate Student">General Undergraduate Student</option>
+                  </select>
+                </div>
+
+                <div className="auth-input-group">
+                  <label htmlFor="su-residence">Current Residence Area / Estate</label>
+                  <select
+                    id="su-residence"
+                    value={suResidenceArea}
+                    onChange={e => setSuResidenceArea(e.target.value)}
+                    required
+                  >
+                    <option value="Madaraka Estate">Madaraka Estate</option>
+                    <option value="Nairobi West">Nairobi West</option>
+                    <option value="South B">South B</option>
+                    <option value="South C">South C</option>
+                    <option value="Langata / KMA">Langata / KMA</option>
+                    <option value="Highrise / Mbagathi Way">Highrise / Mbagathi Way</option>
+                    <option value="Ngara">Ngara</option>
+                    <option value="Parklands">Parklands</option>
+                    <option value="Upper Hill">Upper Hill</option>
+                    <option value="Kilimani / Hurlingham">Kilimani / Hurlingham</option>
+                    <option value="Juja / Thika Road">Juja / Thika Road</option>
+                    <option value="Strathmore Hostels (On-Campus)">Strathmore Hostels (On-Campus)</option>
+                  </select>
                 </div>
 
                 <div className="auth-input-group">

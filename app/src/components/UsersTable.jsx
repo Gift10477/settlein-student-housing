@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, addUser, updateUser } from '../services/api';
+import { getUsers, addUser, updateUser, getStudentResidenceArea } from '../services/api';
 
 export default function UsersTable() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiResult, setApiResult] = useState(null);
 
   // Form for INSERT
   const [form, setForm] = useState({
     name: '',
     email: '',
+    phone: '',
     course: '',
     campus: 'strathmore',
-    residence_area: '',
-    phone: '',
+    residence_area: 'Madaraka Estate',
     role: 'student',
   });
 
@@ -43,10 +44,10 @@ export default function UsersTable() {
       setForm({
         name: '',
         email: '',
+        phone: '',
         course: '',
         campus: 'strathmore',
-        residence_area: '',
-        phone: '',
+        residence_area: 'Madaraka Estate',
         role: 'student',
       });
       loadUsers();
@@ -68,10 +69,52 @@ export default function UsersTable() {
     }
   };
 
+  // TEST RESIDENCE AREA API
+  const handleCheckResidenceArea = async (user) => {
+    try {
+      const data = await getStudentResidenceArea(user.id);
+      setApiResult({
+        user: user.name,
+        endpoint: `/api/v1/users/${user.id}/residence-area`,
+        response: data
+      });
+    } catch (err) {
+      setApiResult({
+        user: user.name,
+        endpoint: `/api/v1/users/${user.id}/residence-area`,
+        error: err.message
+      });
+    }
+  };
+
   return (
     <div style={{ padding: '1.5rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
-      <h3>Database Users (SELECT, INSERT, UPDATE)</h3>
-      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Live connection to MySQL `users` table</p>
+      <h3>Database Users & Residence Proximity API</h3>
+      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Live connection to MySQL `users` table & OpenAPI `/api/v1/users/:id/residence-area` endpoint</p>
+
+      {/* API RESULT VIEWER */}
+      {apiResult && (
+        <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', margin: '1rem 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, color: '#166534' }}>
+              API Test Result for {apiResult.user} (<code>{apiResult.endpoint}</code>)
+            </h4>
+            <button
+              onClick={() => setApiResult(null)}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}
+            >
+              ✕
+            </button>
+          </div>
+          {apiResult.error ? (
+            <p style={{ color: '#dc2626', margin: '0.5rem 0 0' }}>{apiResult.error}</p>
+          ) : (
+            <pre style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '4px', overflowX: 'auto', fontSize: '0.85rem', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
+              {JSON.stringify(apiResult.response, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
 
       {/* INSERT FORM */}
       <form onSubmit={handleAddUser} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', margin: '1rem 0' }}>
@@ -92,6 +135,13 @@ export default function UsersTable() {
           style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
         <input
+          type="tel"
+          placeholder="Phone Number"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+        />
+        <input
           type="text"
           placeholder="Course / Programme"
           value={form.course}
@@ -99,13 +149,23 @@ export default function UsersTable() {
           required
           style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
         />
-        <input
-          type="text"
-          placeholder="Residence Area"
+        <select
           value={form.residence_area}
           onChange={(e) => setForm({ ...form, residence_area: e.target.value })}
           style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-        />
+        >
+          <option value="Madaraka Estate">Madaraka Estate</option>
+          <option value="Nairobi West">Nairobi West</option>
+          <option value="South B">South B</option>
+          <option value="South C">South C</option>
+          <option value="Langata / KMA">Langata / KMA</option>
+          <option value="Highrise / Mbagathi Way">Highrise / Mbagathi Way</option>
+          <option value="Ngara">Ngara</option>
+          <option value="Parklands">Parklands</option>
+          <option value="Upper Hill">Upper Hill</option>
+          <option value="Kilimani / Hurlingham">Kilimani / Hurlingham</option>
+          <option value="Juja / Thika Road">Juja / Thika Road</option>
+        </select>
         <button
           type="submit"
           style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -126,6 +186,7 @@ export default function UsersTable() {
               <th style={{ padding: '8px' }}>ID</th>
               <th style={{ padding: '8px' }}>Name</th>
               <th style={{ padding: '8px' }}>Email</th>
+              <th style={{ padding: '8px' }}>Phone</th>
               <th style={{ padding: '8px' }}>Course</th>
               <th style={{ padding: '8px' }}>Estate</th>
               <th style={{ padding: '8px' }}>Actions</th>
@@ -137,14 +198,22 @@ export default function UsersTable() {
                 <td style={{ padding: '8px' }}>{u.id}</td>
                 <td style={{ padding: '8px', fontWeight: '600' }}>{u.name}</td>
                 <td style={{ padding: '8px' }}>{u.email}</td>
+                <td style={{ padding: '8px' }}>{u.phone || '-'}</td>
                 <td style={{ padding: '8px' }}>{u.course}</td>
                 <td style={{ padding: '8px' }}>{u.residence_area || '-'}</td>
-                <td style={{ padding: '8px' }}>
+                <td style={{ padding: '8px', display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => handleCheckResidenceArea(u)}
+                    style={{ padding: '4px 10px', background: '#0284c7', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                    title="Test GET /api/v1/users/:id/residence-area"
+                  >
+                    API Check
+                  </button>
                   <button
                     onClick={() => handleUpdateCourse(u)}
                     style={{ padding: '4px 10px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                   >
-                    Update Course
+                    Update
                   </button>
                 </td>
               </tr>

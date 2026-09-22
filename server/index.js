@@ -15,7 +15,11 @@ app.get('/', (req, res) => {
 
 // Mount Routes
 app.use('/api/properties', require('./routes/properties'));
+app.use('/api/v1/properties', require('./routes/properties'));
 app.use('/api/users', require('./routes/user'));
+app.use('/api/v1/users', require('./routes/user'));
+app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/v1/bookings', require('./routes/bookings'));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -218,20 +218,24 @@ const USER_SESSION_KEY = 'settlein_active_user';
 /**
  * Register a new user account into MySQL and log them in
  */
-export async function registerUser({ name, email, password, role = 'student', campus = 'strathmore' }) {
+export async function registerUser({ name, email, password, role = 'student', campus = 'strathmore', residence_area = '', phone = '', course = '', student_id = '' }) {
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return { success: false, message: 'Please provide a valid email address.' };
     }
 
-    const res = await addUser({ name, email, role, campus });
+    const res = await addUser({ name, email, role, campus, residence_area, phone, course, student_id });
     const user = {
       id: res.user_id || `user-${Date.now()}`,
       name,
       email,
+      student_id,
       role,
-      campus
+      campus,
+      course,
+      residence_area,
+      phone
     };
 
     localStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
@@ -245,6 +249,78 @@ export async function registerUser({ name, email, password, role = 'student', ca
       success: false,
       message: err.message || 'Failed to create account.',
     };
+  }
+}
+
+/**
+ * Create a new accommodation booking in MySQL database
+ */
+export async function createBooking(bookingData) {
+  try {
+    const res = await fetch(`${API_BASE}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookingData),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.details || `Failed to create booking (HTTP ${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    console.error('createBooking error:', err);
+    throw err;
+  }
+}
+
+/**
+ * OpenAPI Contract 1: Retrieve student residential estate and calculated campus proximity
+ */
+export async function getStudentResidenceArea(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/v1/users/${userId}/residence-area`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to fetch residence area (HTTP ${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(`getStudentResidenceArea(${userId}) error:`, err);
+    throw err;
+  }
+}
+
+/**
+ * OpenAPI Contract 3: Retrieve a student's lease timeline, arrival time, and relocation dates from database
+ */
+export async function getStudentLeaseTimeline(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/v1/users/${userId}/lease-timeline`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to fetch lease timeline (HTTP ${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(`getStudentLeaseTimeline(${userId}) error:`, err);
+    throw err;
+  }
+}
+
+/**
+ * OpenAPI Contract 4: Retrieve verified student public profile and university affiliation
+ */
+export async function getStudentPublicProfile(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/v1/users/${userId}/public-profile`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to fetch public profile (HTTP ${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(`getStudentPublicProfile(${userId}) error:`, err);
+    throw err;
   }
 }
 
