@@ -43,7 +43,7 @@ Every needs statement strictly adheres to the required format:
 ### Statement 2: Accommodation Study Amenities & Wi-Fi Reliability
 > **“StudySync needs to read the accommodation study amenities (high-speed Wi-Fi rating, dedicated desk space, backup generator, quiet-hours policy) for a member’s residence in order to identify and recommend host-friendly apartments for group project work sprints.”**
 
-* **Verb & Resource:** `GET /api/v1/accommodations/{id}/study-amenities`
+* **Verb & Resource:** `GET /api/v1/properties/{id}/study-amenities`
 * **Freshness:** Updated within 1–6 hours.
 * **Volume:** Low to medium — called when group members search for an optimal study host home.
 * **Auth & Security:** Required (Authenticated group member session token).
@@ -76,10 +76,10 @@ Every needs statement strictly adheres to the required format:
 ### Statement 5: Shared Accommodation & Co-Living Group Inquiry (Write Action)
 > **“StudySync needs to create a shared-housing inquiry notification with group member IDs and target campus branch in order to alert study group members about available multi-bedroom apartments suitable for co-living near their campus.”**
 
-* **Verb & Resource:** `POST /api/v1/accommodations/group-inquiries`
-* **Freshness:** Near real-time upon event creation.
+s * **Freshness:** Near real-time upon event creation.
 * **Volume:** Low / Infrequent — triggered only when a study group explicitly requests a joint accommodation search.
 * **Auth & Security:** High / Required (Write-permission Bearer token from an authenticated study group admin).
+* **Verb & Resource:** `POST /api/v1/properties/group-inquiries`
 * **Entity Mapping:** Mapped to `Entity 3: Properties`, `Entity 8: Bookings`, and `Entity 17: Notifications & Alerts`.
 
 ---
@@ -91,4 +91,3 @@ The partner interview process provided critical insights into architectural assu
 What stood out most during our discovery phase with **StudySync (Team 2)** was an initial domain expectation mismatch: StudySync entered the interview assuming SettleIn managed academic coursework, requesting assignment deadlines, task progress trackers, and group study schedules. Performing the Week 1 resource audit against our [TEAM_CHARTER.md](file:///c:/Users/giftg/OneDrive%20-%20Strathmore%20University/Desktop/Student_accomodation_app/TEAM_CHARTER.md) immediately caught this gap before writing phantom endpoints. We successfully reconciled our interface contract by pivoting to high-value **cross-domain touchpoints**: providing StudySync with residential neighborhood data for physical meetup planning, housing amenity ratings (Wi-Fi/power) for study sprint venues, and verified campus identities. 
 
 On the other side, our interview with upstream partner **Team 14** offered crucial clarity on distributed system trade-offs: understanding their multi-tiered caching pipeline (1-minute source writes, 5-minute cron ingestion, and 60-second Redis caching) gave us concrete numbers on data freshness (~6-minute worst-case staleness), demonstrating why API contracts must explicitly document latency expectations and payload timestamps like `fetched_at` rather than assuming instantaneous consistency.
-

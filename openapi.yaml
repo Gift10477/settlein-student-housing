@@ -296,12 +296,12 @@ paths:
                 status_code: 500
                 timestamp: "2026-09-09T09:45:00Z"
 
-  /api/v1/accommodations/group-inquiries:
+  /api/v1/properties/group-inquiries:
     post:
       summary: Submit a shared-housing co-living group inquiry
       description: >-
-        Creates a new co-living inquiry for a collaborative study group. Dispatches alerts
-        to matched multi-bedroom properties near campus and notifies all group participants.
+        Creates a shared-housing inquiry and records it on matched verified properties
+        in the existing properties table.
       operationId: createGroupInquiry
       tags:
         - Accommodations & Amenities
@@ -309,23 +309,10 @@ paths:
         - BearerAuth: []
       requestBody:
         required: true
-        description: Inquiry details including participating students, budget, and campus target.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateGroupInquiryRequest'
-            example:
-              group_id: "grp-studysync-981"
-              initiator_student_id: 1042
-              member_student_ids:
-                - 1042
-                - 1043
-                - 1088
-              target_campus: "Madaraka Main Campus"
-              preferred_room_type: "3-bedroom"
-              max_budget_per_person_kes: 18000
-              move_in_target_date: "2026-09-01"
-              notes: "Prefer apartments within walking distance to Strathmore Phase 2 gate with backup generator."
       responses:
         '201':
           description: Group accommodation inquiry created successfully.
@@ -333,46 +320,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupInquiryResponse'
-              example:
-                inquiry_id: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
-                group_id: "grp-studysync-981"
-                status: "submitted"
-                matched_accommodations_count: 4
-                created_at: "2026-09-09T09:45:00Z"
-                message: "Group accommodation inquiry recorded successfully. Notifications dispatched to group members."
         '400':
-          description: Bad request — Missing or invalid payload attributes.
+          description: Invalid inquiry data.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Bad Request"
-                message: "Field 'member_student_ids' must contain at least 2 students."
-                status_code: 400
-                timestamp: "2026-09-09T09:45:00Z"
-        '401':
-          description: Unauthorized — Authentication required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                message: "Authorization token invalid or expired."
-                status_code: 401
-                timestamp: "2026-09-09T09:45:00Z"
         '500':
-          description: Internal server error.
+          description: Inquiry could not be persisted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Internal Server Error"
-                message: "Failed to persist group inquiry to database."
-                status_code: 500
-                timestamp: "2026-09-09T09:45:00Z"
 
 components:
   securitySchemes:
@@ -758,13 +717,9 @@ components:
       properties:
         group_id:
           type: string
-          description: Identifier of the StudySync collaboration group making the inquiry.
-          example: "grp-studysync-981"
         initiator_student_id:
           type: integer
           minimum: 1
-          description: Student ID of the group leader or admin placing the request.
-          example: 1042
         member_student_ids:
           type: array
           minItems: 2
@@ -772,19 +727,12 @@ components:
           items:
             type: integer
             minimum: 1
-          description: Array of student IDs of group members seeking joint accommodation.
-          example:
-            - 1042
-            - 1043
-            - 1088
         target_campus:
           type: string
           enum:
             - "Madaraka Main Campus"
             - "Town Campus"
             - "Parklands Campus"
-          description: Primary university campus the accommodation must be proximate to.
-          example: "Madaraka Main Campus"
         preferred_room_type:
           type: string
           enum:
@@ -793,24 +741,16 @@ components:
             - "3-bedroom"
             - "4-bedroom"
             - "shared-apartment"
-          description: Layout type of interest for shared living.
-          example: "3-bedroom"
         max_budget_per_person_kes:
           type: integer
           minimum: 1000
           maximum: 200000
-          description: Maximum monthly rent budget per individual in Kenyan Shillings (KES).
-          example: 18000
         move_in_target_date:
           type: string
           format: date
-          description: Desired move-in date for the semester.
-          example: "2026-09-01"
         notes:
           type: string
           maxLength: 500
-          description: Additional group preferences or accommodation requirements.
-          example: "Prefer apartments within walking distance to Strathmore Phase 2 gate with backup generator."
 
     GroupInquiryResponse:
       type: object
@@ -825,35 +765,19 @@ components:
         inquiry_id:
           type: string
           format: uuid
-          description: Unique UUID assigned to the group inquiry.
-          example: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
         group_id:
           type: string
-          description: Corresponding study group identifier.
-          example: "grp-studysync-981"
         status:
           type: string
-          enum:
-            - submitted
-            - reviewing
-            - matched
-            - contacted
-          description: Current progression status of the inquiry.
-          example: "submitted"
+          enum: [submitted]
         matched_accommodations_count:
           type: integer
           minimum: 0
-          description: Number of currently listed units matching the group's specifications.
-          example: 4
         created_at:
           type: string
           format: date-time
-          description: Timestamp when the inquiry was registered.
-          example: "2026-09-09T09:45:00Z"
         message:
           type: string
-          description: Confirmation message for caller display.
-          example: "Group accommodation inquiry recorded successfully. Notifications dispatched to group members."
 
     ErrorResponse:
       type: object

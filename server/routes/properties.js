@@ -1,8 +1,9 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db');
 
-const studyAmenityColumns = {
+const propertyOptionalColumns = {
   wifi_rating: 'DECIMAL(2,1) NULL',
   wifi_speed_mbps: 'INT NULL',
   has_dedicated_desk: 'TINYINT(1) NULL',
@@ -11,10 +12,11 @@ const studyAmenityColumns = {
   quiet_hours_end: 'VARCHAR(5) NULL',
   quiet_hours_policy_enforced: 'TINYINT(1) NULL',
   max_study_guests: 'INT NULL',
-  last_inspected_at: 'TIMESTAMP NULL'
+  last_inspected_at: 'TIMESTAMP NULL',
+  group_inquiries: 'TEXT NULL'
 };
 
-async function initializeStudyAmenities() {
+async function initializePropertyColumns() {
   try {
     const [columns] = await db.query(
       `SELECT COLUMN_NAME
@@ -23,7 +25,7 @@ async function initializeStudyAmenities() {
     );
     const existingColumns = new Set(columns.map((column) => column.COLUMN_NAME));
 
-    for (const [columnName, definition] of Object.entries(studyAmenityColumns)) {
+    for (const [columnName, definition] of Object.entries(propertyOptionalColumns)) {
       if (!existingColumns.has(columnName)) {
         await db.query(`ALTER TABLE properties ADD COLUMN ${columnName} ${definition}`);
       }
@@ -43,11 +45,11 @@ async function initializeStudyAmenities() {
         last_inspected_at = COALESCE(last_inspected_at, CURRENT_TIMESTAMP)
     `);
   } catch (err) {
-    console.error('Study amenities migration error:', err);
+    console.error('Property column migration error:', err);
   }
 }
 
-initializeStudyAmenities();
+initializePropertyColumns();
 
 // Helper to format property row
 function formatProperty(p) {
@@ -94,7 +96,25 @@ function formatProperty(p) {
     amenities: amenitiesArr,
     images: imagesArr,
     reviews: reviewsArr,
+    group_inquiries: parseGroupInquiries(p.group_inquiries, p.id),
   };
+}
+
+function parseGroupInquiries(value, propertyId) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (parseError) {
+    console.error(`Invalid group_inquiries JSON for property ${propertyId}:`, parseError);
+    return [];
+  }
 }
 
 function formatStudyAmenities(p) {
@@ -113,6 +133,49 @@ function formatStudyAmenities(p) {
     max_study_guests: p.max_study_guests === null ? null : Number(p.max_study_guests),
     last_inspected_at: p.last_inspected_at
   };
+}
+
+const ALLOWED_INQUIRY_CAMPUSES = [
+  'Madaraka Main Campus',
+  'Town Campus',
+  'Parklands Campus'
+];
+
+const ALLOWED_INQUIRY_ROOM_TYPES = [
+  '1-bedroom',
+  '2-bedroom',
+  '3-bedroom',
+  '4-bedroom',
+  'shared-apartment'
+];
+
+function inquiryValidationError(res, message) {
+  return res.status(400).json({
+    error: 'Bad Request',
+    message,
+    status_code: 400,
+    timestamp: new Date().toISOString()
+  });
+}
+
+function validInquiryDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+}
+
+function campusPattern(campus) {
+  return {
+    'Madaraka Main Campus': 'strathmore',
+    'Town Campus': 'town',
+    'Parklands Campus': 'parklands'
+  }[campus];
+}
+
+function roomTypePattern(roomType) {
+  return roomType === 'shared-apartment' ? '%shared%' : `%${roomType}%`;
 }
 
 // 1. SELECT (Read all properties)
@@ -154,7 +217,108 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. GET study amenities for a property
+// 2. POST a shared-housing inquiry against matched properties
+router.post('/group-inquiries', async (req, res) => {
+  const {
+    group_id: groupId,
+    initiator_student_id: initiatorStudentId,
+    member_student_ids: memberStudentIds,
+    target_campus: targetCampus,
+    preferred_room_type: preferredRoomType,
+    max_budget_per_person_kes: maxBudget,
+    move_in_target_date: moveInTargetDate,
+    notes
+  } = req.body;
+
+  if (typeof groupId !== 'string' || !groupId.trim()) {
+    return inquiryValidationError(res, "Field 'group_id' is required.");
+  }
+  if (!Number.isInteger(initiatorStudentId) || initiatorStudentId < 1) {
+    return inquiryValidationError(res, "Field 'initiator_student_id' must be a positive integer.");
+  }
+  if (!Array.isArray(memberStudentIds) || memberStudentIds.length < 2 || memberStudentIds.length > 10) {
+    return inquiryValidationError(res, "Field 'member_student_ids' must contain between 2 and 10 students.");
+  }
+  if (
+    memberStudentIds.some((studentId) => !Number.isInteger(studentId) || studentId < 1) ||
+    new Set(memberStudentIds).size !== memberStudentIds.length
+  ) {
+    return inquiryValidationError(res, "Field 'member_student_ids' must contain unique positive integers.");
+  }
+  if (!memberStudentIds.includes(initiatorStudentId)) {
+    return inquiryValidationError(res, "The initiator must be included in 'member_student_ids'.");
+  }
+  if (!ALLOWED_INQUIRY_CAMPUSES.includes(targetCampus)) {
+    return inquiryValidationError(res, "Field 'target_campus' contains an unsupported campus.");
+  }
+  if (!ALLOWED_INQUIRY_ROOM_TYPES.includes(preferredRoomType)) {
+    return inquiryValidationError(res, "Field 'preferred_room_type' contains an unsupported room type.");
+  }
+  if (!Number.isInteger(maxBudget) || maxBudget < 1000 || maxBudget > 200000) {
+    return inquiryValidationError(res, "Field 'max_budget_per_person_kes' must be between 1000 and 200000.");
+  }
+  if (!validInquiryDate(moveInTargetDate)) {
+    return inquiryValidationError(res, "Field 'move_in_target_date' must use YYYY-MM-DD format.");
+  }
+  if (notes !== undefined && (typeof notes !== 'string' || notes.length > 500)) {
+    return inquiryValidationError(res, "Field 'notes' must be a string of no more than 500 characters.");
+  }
+
+  try {
+    const [matches] = await db.query(
+      `SELECT id, group_inquiries
+       FROM properties
+       WHERE campus = ?
+         AND LOWER(type) LIKE LOWER(?)
+         AND price <= ?
+         AND vacant_units > 0
+         AND verified = 1`,
+      [campusPattern(targetCampus), roomTypePattern(preferredRoomType), maxBudget]
+    );
+
+    const inquiry = {
+      inquiry_id: crypto.randomUUID(),
+      group_id: groupId.trim(),
+      initiator_student_id: initiatorStudentId,
+      member_student_ids: memberStudentIds,
+      target_campus: targetCampus,
+      preferred_room_type: preferredRoomType,
+      max_budget_per_person_kes: maxBudget,
+      move_in_target_date: moveInTargetDate,
+      notes: notes || null,
+      status: 'submitted',
+      created_at: new Date().toISOString()
+    };
+
+    for (const property of matches) {
+      const inquiries = parseGroupInquiries(property.group_inquiries, property.id);
+      inquiries.push(inquiry);
+      await db.query(
+        'UPDATE properties SET group_inquiries = ? WHERE id = ?',
+        [JSON.stringify(inquiries), property.id]
+      );
+    }
+
+    res.status(201).json({
+      inquiry_id: inquiry.inquiry_id,
+      group_id: inquiry.group_id,
+      status: inquiry.status,
+      matched_accommodations_count: matches.length,
+      created_at: inquiry.created_at,
+      message: 'Group accommodation inquiry recorded successfully.'
+    });
+  } catch (err) {
+    console.error('Create group inquiry error:', err);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to persist group inquiry to matched properties.',
+      status_code: 500,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 3. GET study amenities for a property
 router.get('/:id/study-amenities', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM properties WHERE id = ?', [req.params.id]);
@@ -179,7 +343,7 @@ router.get('/:id/study-amenities', async (req, res) => {
   }
 });
 
-// 2. SELECT single property by ID
+// 4. SELECT single property by ID
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM properties WHERE id = ?', [req.params.id]);
@@ -193,7 +357,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. INSERT (Create a new property)
+// 5. INSERT (Create a new property)
 router.post('/', async (req, res) => {
   try {
     const {
@@ -314,7 +478,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 4. UPDATE (Update an existing property)
+// 6. UPDATE (Update an existing property)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -365,7 +529,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 5. DELETE (Delete a property)
+// 7. DELETE (Delete a property)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
