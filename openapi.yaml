@@ -47,6 +47,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResidenceAreaResponse'
               example:
+                status_code: 200
                 user_id: 1042
                 estate_name: "Madaraka Estate"
                 nearest_campus: "Madaraka Main Campus"
@@ -114,6 +115,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StudyAmenitiesResponse'
               example:
+                status_code: 200
                 accommodation_id: "prop-305"
                 accommodation_name: "Strathmore View Executive Hostels"
                 wifi_rating: 4.5
@@ -177,6 +179,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LeaseTimelineResponse'
               example:
+                status_code: 200
                 user_id: 1042
                 student_id: "193923"
                 booking_id: 782
@@ -253,6 +256,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PublicProfileResponse'
               example:
+                status_code: 200
                 user_id: 1042
                 display_name: "Tiffany Akello"
                 university_affiliation: "Strathmore University"
@@ -320,8 +324,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupInquiryResponse'
+              example:
+                status_code: 201
+                inquiry_id: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
+                group_id: "grp-studysync-981"
+                status: "submitted"
+                matched_accommodations_count: 4
+                created_at: "2026-09-09T09:45:00Z"
+                message: "Group accommodation inquiry recorded successfully."
         '400':
           description: Invalid inquiry data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: No verified vacant property matches the requested campus, room type, and budget.
           content:
             application/json:
               schema:
@@ -345,12 +363,17 @@ components:
     ResidenceAreaResponse:
       type: object
       required:
+        - status_code
         - user_id
         - estate_name
         - nearest_campus
         - distance_to_campus
         - cached_at
       properties:
+        status_code:
+          type: integer
+          enum: [200]
+          example: 200
         user_id:
           type: integer
           description: Unique student user identifier.
@@ -395,6 +418,7 @@ components:
     StudyAmenitiesResponse:
       type: object
       required:
+        - status_code
         - accommodation_id
         - accommodation_name
         - wifi_rating
@@ -405,6 +429,10 @@ components:
         - max_study_guests
         - last_inspected_at
       properties:
+        status_code:
+          type: integer
+          enum: [200]
+          example: 200
         accommodation_id:
           type: string
           description: Property identifier from the properties table.
@@ -570,6 +598,7 @@ components:
     LeaseTimelineResponse:
       type: object
       required:
+        - status_code
         - user_id
         - booking_id
         - lease_status
@@ -581,6 +610,10 @@ components:
         - is_relocating
         - booked_at
       properties:
+        status_code:
+          type: integer
+          enum: [200]
+          example: 200
         user_id:
           type: integer
           description: Unique student user identifier.
@@ -649,6 +682,7 @@ components:
     PublicProfileResponse:
       type: object
       required:
+        - status_code
         - user_id
         - display_name
         - university_affiliation
@@ -659,6 +693,10 @@ components:
         - avatar_url
         - created_at
       properties:
+        status_code:
+          type: integer
+          enum: [200]
+          example: 200
         user_id:
           type: integer
           description: Unique student user identifier.
@@ -755,6 +793,7 @@ components:
     GroupInquiryResponse:
       type: object
       required:
+        - status_code
         - inquiry_id
         - group_id
         - status
@@ -762,6 +801,10 @@ components:
         - created_at
         - message
       properties:
+        status_code:
+          type: integer
+          enum: [201]
+          example: 201
         inquiry_id:
           type: string
           format: uuid

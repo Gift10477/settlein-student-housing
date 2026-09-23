@@ -2,6 +2,22 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+function badRequest(res, message) {
+  return res.status(400).json({ error: 'Bad Request', message, status_code: 400 });
+}
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isOptionalString(value) {
+  return value === undefined || isNonEmptyString(value);
+}
+
+function isValidEmail(value) {
+  return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 // Reference university campus coordinates (GPS anchors for distance calculation)
 const CAMPUSES = [
   { name: 'Madaraka Main Campus', institution: 'Strathmore University', lat: -1.3090, lon: 36.8126 },
@@ -134,6 +150,7 @@ router.get('/:id/residence-area', async (req, res) => {
     const proximity = resolveResidenceProximity(user.residence_area, user.campus);
 
     res.json({
+      status_code: 200,
       user_id: Number(user.id),
       estate_name: proximity.estate_name,
       nearest_campus: proximity.nearest_campus,
@@ -197,6 +214,7 @@ router.get('/:id/lease-timeline', async (req, res) => {
     const studentId = booking.student_id || user.student_id || user.student_id_number || null;
 
     res.json({
+      status_code: 200,
       user_id: Number(user.id),
       student_id: studentId,
       booking_id: Number(booking.id),
@@ -241,6 +259,7 @@ router.get('/:id/public-profile', async (req, res) => {
     const proximity = resolveResidenceProximity(user.residence_area, user.campus);
 
     res.json({
+      status_code: 200,
       user_id: Number(user.id),
       student_id: user.student_id || user.student_id_number || '193923',
       display_name: user.name,
@@ -280,10 +299,17 @@ router.get('/:id', async (req, res) => {
 // 6. INSERT new user
 router.post('/', async (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return badRequest(res, 'Request body must be a JSON object.');
+    }
     const { name, email, student_id, course, campus, residence_area, phone, role } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Missing required fields: name, email' });
+    if (!isNonEmptyString(name)) return badRequest(res, "Field 'name' is required and must be a non-empty string.");
+    if (!isValidEmail(email)) return badRequest(res, "Field 'email' must be a valid email string.");
+    if (!isOptionalString(student_id) || !isOptionalString(course) ||
+        !isOptionalString(campus) || !isOptionalString(residence_area) ||
+        !isOptionalString(phone) || !isOptionalString(role)) {
+      return badRequest(res, 'Optional user fields must be non-empty strings when provided.');
     }
 
     let result;
@@ -322,6 +348,7 @@ router.post('/', async (req, res) => {
     }
 
     res.status(201).json({
+      status_code: 201,
       message: 'User inserted successfully into database',
       user_id: result.insertId
     });
@@ -337,10 +364,11 @@ router.post('/', async (req, res) => {
 // 7. POST login
 router.post('/login', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required to sign in' });
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return badRequest(res, 'Request body must be a JSON object.');
     }
+    const { email } = req.body;
+    if (!isValidEmail(email)) return badRequest(res, "Field 'email' must be a valid email string.");
 
     const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
     if (rows.length === 0) {
@@ -348,6 +376,7 @@ router.post('/login', async (req, res) => {
     }
 
     res.json({
+      status_code: 200,
       message: 'Signed in successfully!',
       user: rows[0]
     });
@@ -360,8 +389,21 @@ router.post('/login', async (req, res) => {
 // 8. PUT update user
 router.put('/:id', async (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return badRequest(res, 'Request body must be a JSON object.');
+    }
     const { id } = req.params;
     const { name, email, student_id, course, campus, residence_area, phone, role } = req.body;
+    const updates = { name, email, student_id, course, campus, residence_area, phone, role };
+
+    if (!Object.values(updates).some((value) => value !== undefined)) {
+      return badRequest(res, 'At least one user field must be provided for update.');
+    }
+    if (name !== undefined && !isNonEmptyString(name)) return badRequest(res, "Field 'name' must be a non-empty string.");
+    if (email !== undefined && !isValidEmail(email)) return badRequest(res, "Field 'email' must be a valid email string.");
+    if (Object.entries(updates).some(([field, value]) => field !== 'name' && field !== 'email' && value !== undefined && !isNonEmptyString(value))) {
+      return badRequest(res, 'User fields must be non-empty strings when provided.');
+    }
 
     const sql = `
       UPDATE users
@@ -393,7 +435,7 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ message: 'User updated successfully in database' });
+    res.json({ status_code: 200, message: 'User updated successfully in database' });
   } catch (err) {
     console.error('UPDATE user error:', err);
     res.status(500).json({ error: 'Failed to update user in database' });

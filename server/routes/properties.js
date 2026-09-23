@@ -158,6 +158,22 @@ function inquiryValidationError(res, message) {
   });
 }
 
+function propertyBadRequest(res, message) {
+  return res.status(400).json({ error: 'Bad Request', message, status_code: 400 });
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function finiteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function optionalBoolean(value) {
+  return value === undefined || typeof value === 'boolean';
+}
+
 function validInquiryDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -166,16 +182,23 @@ function validInquiryDate(value) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
 }
 
-function campusPattern(campus) {
+function campusPatterns(campus) {
   return {
-    'Madaraka Main Campus': 'strathmore',
-    'Town Campus': 'town',
-    'Parklands Campus': 'parklands'
-  }[campus];
+    'Madaraka Main Campus': ['strathmore', 'madaraka', 'madaraka main campus'],
+    'Town Campus': ['town', 'town campus'],
+    'Parklands Campus': ['parklands', 'parklands campus']
+  }[campus] || [];
 }
 
-function roomTypePattern(roomType) {
-  return roomType === 'shared-apartment' ? '%shared%' : `%${roomType}%`;
+function roomTypePatterns(roomType) {
+  const patterns = {
+    '1-bedroom': ['1-bedroom', '1 bedroom', '1-bedroom apartment', 'one bedroom'],
+    '2-bedroom': ['2-bedroom', '2 bedroom', '2-bedroom apartment', 'two bedroom'],
+    '3-bedroom': ['3-bedroom', '3 bedroom', '3-bedroom apartment', 'three bedroom'],
+    '4-bedroom': ['4-bedroom', '4 bedroom', '4-bedroom apartment', 'four bedroom'],
+    'shared-apartment': ['shared-apartment', 'shared apartment', 'shared']
+  };
+  return patterns[roomType] || [];
 }
 
 // 1. SELECT (Read all properties)
@@ -219,6 +242,9 @@ router.get('/', async (req, res) => {
 
 // 2. POST a shared-housing inquiry against matched properties
 router.post('/group-inquiries', async (req, res) => {
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return inquiryValidationError(res, 'Request body must be a JSON object.');
+  }
   const {
     group_id: groupId,
     initiator_student_id: initiatorStudentId,
@@ -265,16 +291,14 @@ router.post('/group-inquiries', async (req, res) => {
   }
 
   try {
-    const [matches] = await db.query(
-      `SELECT id, group_inquiries
-       FROM properties
-       WHERE campus = ?
-         AND LOWER(type) LIKE LOWER(?)
-         AND price <= ?
-         AND vacant_units > 0
-         AND verified = 1`,
-      [campusPattern(targetCampus), roomTypePattern(preferredRoomType), maxBudget]
-    );
+    const campusValues = campusPatterns(targetCampus);
+    const roomTypeValues = roomTypePatterns(preferredRoomType);
+    const campusPlaceholders = campusValues.map(() => '?').join(', ');
+    const roomTypeConditions = roomTypeValues
+      .map(() => 'LOWER(REPLACE(type, \'-\', \' \')) LIKE ?')
+      .join(' OR ');
+    const roomTypeParams = roomTypeValues.map((value) => `%${value.replace('-', ' ')}%`);
+    const connection = await db.getConnection();
 
     const inquiry = {
       inquiry_id: crypto.randomUUID(),
@@ -290,16 +314,50 @@ router.post('/group-inquiries', async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    for (const property of matches) {
-      const inquiries = parseGroupInquiries(property.group_inquiries, property.id);
-      inquiries.push(inquiry);
-      await db.query(
-        'UPDATE properties SET group_inquiries = ? WHERE id = ?',
-        [JSON.stringify(inquiries), property.id]
+    let matches;
+    try {
+      await connection.beginTransaction();
+      const [rows] = await connection.query(
+        `SELECT id, group_inquiries
+         FROM properties
+         WHERE LOWER(TRIM(campus)) IN (${campusPlaceholders})
+           AND (${roomTypeConditions})
+           AND price <= ?
+           AND vacant_units > 0
+           AND verified = 1
+         FOR UPDATE`,
+        [...campusValues, ...roomTypeParams, maxBudget]
       );
+      matches = rows;
+
+      if (matches.length === 0) {
+        await connection.rollback();
+        return res.status(422).json({
+          error: 'No Matching Properties',
+          message: 'No verified vacant properties match the requested campus, room type, and budget.',
+          status_code: 422,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      for (const property of matches) {
+        const inquiries = parseGroupInquiries(property.group_inquiries, property.id);
+        inquiries.push(inquiry);
+        await connection.query(
+          'UPDATE properties SET group_inquiries = ? WHERE id = ?',
+          [JSON.stringify(inquiries), property.id]
+        );
+      }
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
 
     res.status(201).json({
+      status_code: 201,
       inquiry_id: inquiry.inquiry_id,
       group_id: inquiry.group_id,
       status: inquiry.status,
@@ -318,6 +376,16 @@ router.post('/group-inquiries', async (req, res) => {
   }
 });
 
+router.get('/group-inquiries', (req, res) => {
+  res.set('Allow', 'POST');
+  return res.status(405).json({
+    error: 'Method Not Allowed',
+    message: 'Group inquiries must be submitted with POST.',
+    status_code: 405,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 3. GET study amenities for a property
 router.get('/:id/study-amenities', async (req, res) => {
   try {
@@ -331,7 +399,10 @@ router.get('/:id/study-amenities', async (req, res) => {
       });
     }
 
-    res.json(formatStudyAmenities(rows[0]));
+    res.json({
+      status_code: 200,
+      ...formatStudyAmenities(rows[0])
+    });
   } catch (err) {
     console.error('SELECT property study amenities error:', err);
     res.status(500).json({
@@ -360,6 +431,9 @@ router.get('/:id', async (req, res) => {
 // 5. INSERT (Create a new property)
 router.post('/', async (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return propertyBadRequest(res, 'Request body must be a JSON object.');
+    }
     const {
       title,
       type,
@@ -394,6 +468,49 @@ router.post('/', async (req, res) => {
       max_study_guests,
       last_inspected_at
     } = req.body;
+
+    if (!nonEmptyString(title)) return propertyBadRequest(res, "Field 'title' is required and must be a non-empty string.");
+    if (!nonEmptyString(type)) return propertyBadRequest(res, "Field 'type' is required and must be a non-empty string.");
+    if (!finiteNumber(price) || price < 0) return propertyBadRequest(res, "Field 'price' is required and must be a non-negative number.");
+    if (!nonEmptyString(location)) return propertyBadRequest(res, "Field 'location' is required and must be a non-empty string.");
+    if (!nonEmptyString(campus)) return propertyBadRequest(res, "Field 'campus' is required and must be a non-empty string.");
+    if (distance !== undefined && !nonEmptyString(distance)) return propertyBadRequest(res, "Field 'distance' must be a non-empty string when provided.");
+    if (vacant_units !== undefined && (!Number.isInteger(vacant_units) || vacant_units < 0)) {
+      return propertyBadRequest(res, "Field 'vacant_units' must be a non-negative integer.");
+    }
+    if (amenities !== undefined && !Array.isArray(amenities) && !nonEmptyString(amenities)) {
+      return propertyBadRequest(res, "Field 'amenities' must be an array or non-empty string.");
+    }
+    if (images !== undefined && (!Array.isArray(images) || images.some((image) => !nonEmptyString(image)))) {
+      return propertyBadRequest(res, "Field 'images' must be an array of non-empty strings.");
+    }
+    if (image !== undefined && !nonEmptyString(image)) return propertyBadRequest(res, "Field 'image' must be a non-empty string when provided.");
+    if (description !== undefined && typeof description !== 'string') return propertyBadRequest(res, "Field 'description' must be a string.");
+    if (landlord !== undefined && !nonEmptyString(landlord)) return propertyBadRequest(res, "Field 'landlord' must be a non-empty string.");
+    if (phone !== undefined && !nonEmptyString(phone)) return propertyBadRequest(res, "Field 'phone' must be a non-empty string.");
+    if (whatsapp !== undefined && !nonEmptyString(whatsapp)) return propertyBadRequest(res, "Field 'whatsapp' must be a non-empty string.");
+    if (!optionalBoolean(has_dedicated_desk) || !optionalBoolean(has_backup_generator) ||
+        !optionalBoolean(quiet_hours_policy_enforced)) {
+      return propertyBadRequest(res, 'Study amenity boolean fields must be booleans when provided.');
+    }
+    if (wifi_rating !== undefined && (!finiteNumber(wifi_rating) || wifi_rating < 0 || wifi_rating > 5)) {
+      return propertyBadRequest(res, "Field 'wifi_rating' must be a number between 0 and 5.");
+    }
+    if (wifi_speed_mbps !== undefined && (!Number.isInteger(wifi_speed_mbps) || wifi_speed_mbps < 0)) {
+      return propertyBadRequest(res, "Field 'wifi_speed_mbps' must be a non-negative integer.");
+    }
+    if (max_study_guests !== undefined && (!Number.isInteger(max_study_guests) || max_study_guests < 0)) {
+      return propertyBadRequest(res, "Field 'max_study_guests' must be a non-negative integer.");
+    }
+    if (quiet_hours_start !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(quiet_hours_start)) {
+      return propertyBadRequest(res, "Field 'quiet_hours_start' must use HH:MM format.");
+    }
+    if (quiet_hours_end !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(quiet_hours_end)) {
+      return propertyBadRequest(res, "Field 'quiet_hours_end' must use HH:MM format.");
+    }
+    if (last_inspected_at !== undefined && (typeof last_inspected_at !== 'string' || Number.isNaN(Date.parse(last_inspected_at)))) {
+      return propertyBadRequest(res, "Field 'last_inspected_at' must be a valid date-time string.");
+    }
 
     const id = `prop-${Date.now()}`;
     const defaultImg = image || (images && images[0]) || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80';
@@ -443,6 +560,7 @@ router.post('/', async (req, res) => {
     await db.query(sql, values);
 
     res.status(201).json({
+      status_code: 201,
       message: 'Property inserted successfully into database',
       id: id,
       property: {
@@ -481,6 +599,9 @@ router.post('/', async (req, res) => {
 // 6. UPDATE (Update an existing property)
 router.put('/:id', async (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return propertyBadRequest(res, 'Request body must be a JSON object.');
+    }
     const { id } = req.params;
     const {
       title,
@@ -491,6 +612,20 @@ router.put('/:id', async (req, res) => {
       vacant_units,
       description
     } = req.body;
+
+    const updates = { title, type, price, location, campus, vacant_units, description };
+    if (!Object.values(updates).some((value) => value !== undefined)) {
+      return propertyBadRequest(res, 'At least one property field must be provided for update.');
+    }
+    if (title !== undefined && !nonEmptyString(title)) return propertyBadRequest(res, "Field 'title' must be a non-empty string.");
+    if (type !== undefined && !nonEmptyString(type)) return propertyBadRequest(res, "Field 'type' must be a non-empty string.");
+    if (price !== undefined && (!finiteNumber(price) || price < 0)) return propertyBadRequest(res, "Field 'price' must be a non-negative number.");
+    if (location !== undefined && !nonEmptyString(location)) return propertyBadRequest(res, "Field 'location' must be a non-empty string.");
+    if (campus !== undefined && !nonEmptyString(campus)) return propertyBadRequest(res, "Field 'campus' must be a non-empty string.");
+    if (vacant_units !== undefined && (!Number.isInteger(vacant_units) || vacant_units < 0)) {
+      return propertyBadRequest(res, "Field 'vacant_units' must be a non-negative integer.");
+    }
+    if (description !== undefined && typeof description !== 'string') return propertyBadRequest(res, "Field 'description' must be a string.");
 
     const sql = `
       UPDATE properties
@@ -522,7 +657,7 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Property not found' });
     }
 
-    res.json({ message: 'Property updated successfully in database' });
+    res.json({ status_code: 200, message: 'Property updated successfully in database' });
   } catch (err) {
     console.error('UPDATE Error:', err);
     res.status(500).json({ error: 'Failed to update property in database' });

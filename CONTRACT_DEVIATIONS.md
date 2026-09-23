@@ -52,8 +52,40 @@ The response status is currently restricted to `submitted`, because that is the
 only lifecycle state created by the backend. The contract no longer documents
 future states such as `reviewing`, `matched`, or `contacted`.
 
+The route returns `400` for invalid input, `422` when no verified vacant
+property matches the requested criteria, and `500` for persistence failures.
+The `422` response prevents a false success when there is no property row on
+which the inquiry can be stored.
 
-### 3. Study amenities use the existing property resource
+Successful contract responses now also include a `status_code` field in the
+JSON body that matches the HTTP response:
+
+- `200` for the residence-area, study-amenities, lease-timeline, and
+  public-profile GET endpoints.
+- `201` for a successfully persisted group inquiry.
+
+Express also sets the corresponding HTTP status line through `res.json()` and
+`res.status(...)`; the JSON field makes the result explicit to API consumers.
+
+### 3. Browser GET requests to the group-inquiry URL return `405`
+
+Testing showed that opening the group-inquiry URL directly in a browser sends a
+`GET` request, even though the resource is implemented as a `POST` endpoint.
+Before this adjustment, that GET could be interpreted as a property lookup and
+return a misleading `404 Property not found` response.
+
+The implementation now explicitly returns:
+
+```text
+405 Method Not Allowed
+```
+
+with an `Allow: POST` header and a clear JSON message. The OpenAPI contract
+remains POST-only because the unsupported GET method is not an endpoint
+consumers should call; submitting an inquiry still requires `POST`.
+
+
+### 4. Study amenities use the existing property resource
 
 The study-amenities operation is documented as:
 
@@ -84,7 +116,7 @@ Existing properties receive safe default study-amenity values when those fields
 are missing, and newly created properties receive the same defaults unless
 explicit values are supplied.
 
-### 4. Group-inquiry persistence uses the existing `properties` table
+### 5. Group-inquiry persistence uses the existing `properties` table
 
 The following column was added to `properties`:
 
