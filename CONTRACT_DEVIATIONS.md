@@ -1,9 +1,58 @@
-# Contract Deviations
+# Contract Deviations and Review Record
 
+**Evaluating Team:** SettleIn (Team 1) — Student Housing & Accommodation Marketplace
+**Authors:** Gift Githaka (193923), Ian Kungu (220259), Yahya Abdi (220982), Tiffany Olale (221126)
 
-## OpenAPI changes
+This is the consolidated contract record. It combines the earlier partner
+contract questions with the implementation deviations identified while
+building and testing the SettleIn API.
 
-The `openapi.yaml` file was changed. The following deviations were made:
+---
+
+## Week 4: Partner Contract Review and Ambiguity Analysis
+
+**Upstream producer partner reviewed:** Team 14 — Agricultural & Farmer Produce
+Marketplace
+**Target specification:** Team 14 `openapi.yaml`
+
+The following questions were raised for the upstream partner contract.
+
+### Question 1: Commodity price currency and measurement
+
+**Endpoint:** `GET /api/v1/produce/market-prices`
+
+The `price` field did not specify currency, unit of measurement, decimal
+precision, or VAT treatment. `commodity_code` also had no enum or standard
+pattern, which could cause catalog mapping errors.
+
+**Clarification requested:** Define the currency, unit of measure, financial
+precision, VAT treatment, and a predictable commodity-code format.
+
+### Question 2: Error schemas, rate limits, and freshness
+
+**Endpoints:** `GET /api/v1/depots/{id}/inventory` and query endpoints
+
+The contract documented only successful responses and did not define standard
+`400`, `401`, `404`, or `429` error payloads. It also did not expose
+`fetched_at` or cache headers even though the agreed data could be stale.
+
+**Clarification requested:** Add a shared error schema and document
+`fetched_at` or standard cache headers such as `Cache-Control` and `ETag`.
+
+### Question 3: Farmer-rating update semantics
+
+**Endpoint:** `PUT /api/v1/farmers/{id}/ratings`
+
+The endpoint used `PUT` while accepting partial fields, leaving replacement
+semantics unclear. The contract also lacked concurrency control.
+
+**Clarification requested:** Confirm whether the operation should be `PUT` with
+all replacement fields, `PATCH` for partial updates, and whether an ETag or
+version field is supported.
+
+---
+
+## Week 5: SettleIn Contract Implementation Deviations
 
 ### 1. Group inquiries use `properties`, not `accommodations`
 
@@ -13,26 +62,24 @@ The `openapi.yaml` file was changed. The following deviations were made:
 POST /api/v1/accommodations/group-inquiries
 ```
 
-**Current contract and implementation**
+**Implemented contract**
 
 ```text
 POST /api/v1/properties/group-inquiries
 ```
 
 The application already uses the `properties` table as its accommodation
-resource. There was no separate accommodation resource or separate
-`group_inquiries` table. The endpoint was therefore moved under
-`properties` and stores inquiry records in the `properties.group_inquiries`
-column for matched verified properties.
+resource. There was no separate accommodation resource or
+`group_inquiries` table. The endpoint therefore uses `properties` and stores
+inquiry records in the `properties.group_inquiries` column for matched
+verified properties.
 
-This change also updates the operation description to state that inquiries are
-recorded on matched properties. The contract no longer promises notification
-dispatch because the current backend does not implement a notification service.
+The contract no longer promises notification dispatch because the backend does
+not implement a notification service.
 
-### 2. Group-inquiry responses match the implemented behavior
+### 2. Group-inquiry schemas match the implementation
 
-The `CreateGroupInquiryRequest` and `GroupInquiryResponse` schemas were
-adjusted to describe the fields that the route validates and returns:
+The request validates:
 
 - `group_id`
 - `initiator_student_id`
@@ -42,65 +89,33 @@ adjusted to describe the fields that the route validates and returns:
 - `max_budget_per_person_kes`
 - `move_in_target_date`
 - optional `notes`
+
+The response returns:
+
 - `inquiry_id`
+- `group_id`
 - `status`
 - `matched_accommodations_count`
 - `created_at`
 - `message`
 
-The response status is currently restricted to `submitted`, because that is the
-only lifecycle state created by the backend. The contract no longer documents
-future states such as `reviewing`, `matched`, or `contacted`.
+Only `submitted` is documented because it is the only lifecycle state created
+by the backend. The implementation returns `400` for invalid input, `422` when
+no verified vacant property matches, and `500` for persistence failures.
 
-The route returns `400` for invalid input, `422` when no verified vacant
-property matches the requested criteria, and `500` for persistence failures.
-The `422` response prevents a false success when there is no property row on
-which the inquiry can be stored.
+### 3. Study amenities use the existing properties table
 
-Successful contract responses now also include a `status_code` field in the
-JSON body that matches the HTTP response:
-
-- `200` for the residence-area, study-amenities, lease-timeline, and
-  public-profile GET endpoints.
-- `201` for a successfully persisted group inquiry.
-
-Express also sets the corresponding HTTP status line through `res.json()` and
-`res.status(...)`; the JSON field makes the result explicit to API consumers.
-
-### 3. Browser GET requests to the group-inquiry URL return `405`
-
-Testing showed that opening the group-inquiry URL directly in a browser sends a
-`GET` request, even though the resource is implemented as a `POST` endpoint.
-Before this adjustment, that GET could be interpreted as a property lookup and
-return a misleading `404 Property not found` response.
-
-The implementation now explicitly returns:
-
-```text
-405 Method Not Allowed
-```
-
-with an `Allow: POST` header and a clear JSON message. The OpenAPI contract
-remains POST-only because the unsupported GET method is not an endpoint
-consumers should call; submitting an inquiry still requires `POST`.
-
-
-### 4. Study amenities use the existing property resource
-
-The study-amenities operation is documented as:
+The implemented endpoint is:
 
 ```text
 GET /api/v1/properties/{id}/study-amenities
 ```
 
-It is not an accommodation-table endpoint. The response continues to expose
-the contract's accommodation-oriented field names, such as
-`accommodation_id` and `accommodation_name`, for compatibility with the
-downstream consumer, but the values are read from the existing `properties`
-table.
+The response retains the compatibility fields `accommodation_id` and
+`accommodation_name`, but the values come from `properties`.
 
-The following study-related columns were added to the existing `properties`
-table through the application's runtime migration:
+The following columns were added to the existing table through the runtime
+migration:
 
 - `wifi_rating`
 - `wifi_speed_mbps`
@@ -112,46 +127,22 @@ table through the application's runtime migration:
 - `max_study_guests`
 - `last_inspected_at`
 
-Existing properties receive safe default study-amenity values when those fields
-are missing, and newly created properties receive the same defaults unless
-explicit values are supplied.
+Existing and newly created properties receive safe defaults when values are
+not supplied.
 
-### 5. Group-inquiry persistence uses the existing `properties` table
+### 4. Residential-area data was added to the user API
 
-The following column was added to `properties`:
-
-- `group_inquiries` — JSON text containing inquiries associated with matched
-  properties.
-
-No separate `group_inquiries` table or standalone group-inquiry router was
-created. This is a deliberate deviation from a normalized resource design,
-made because the requested implementation had to use the current properties
-table.
-
-## User API and database additions
-
-The original application did not provide all of the user data required by the
-contract. The following capabilities were added:
-
-### Residential area and proximity
-
-The user database now supports the `residence_area` value used by:
+The original application did not have a residential-area input or API data.
+The `users.residence_area` value and user create/update support were added for:
 
 ```text
 GET /api/v1/users/{id}/residence-area
 ```
 
-The route reads the student's residential estate from the user record and
-calculates a nearest-campus and distance description using the application's
-known estate and campus reference data. Exact GPS coordinates are not exposed
-by this API.
+The route returns the estate, nearest campus, and calculated commute
+description without exposing exact GPS coordinates.
 
-User creation and update requests were also wired to accept `residence_area`,
-so the application has a place for the student to enter their residential
-area. This field was necessary because the original application had no
-residential-area input or corresponding API data.
-
-### Lease timeline
+### 5. Lease-timeline data was added to bookings and the user API
 
 The original application did not have the lease timeline data required by the
 contract. Booking persistence was extended to include:
@@ -165,39 +156,70 @@ contract. Booking persistence was extended to include:
 - `relocation_window_end`
 - `lease_duration`
 
-The booking route calculates lease dates and the relocation window when a
-booking is created. The user API exposes the resulting data through:
+The booking route calculates the lease dates and relocation window. The user
+API exposes them through:
 
 ```text
 GET /api/v1/users/{id}/lease-timeline
 ```
 
-This endpoint reads the latest booking for the user and returns the lease
-period, move-in information, accommodation name, and whether the user is
-currently within the relocation window.
+### 6. Existing user-details endpoint was unchanged
 
-## User endpoint that did not change
-
-The existing user-details endpoint was not changed:
+The existing endpoint remained unchanged:
 
 ```text
 GET /api/v1/users/{id}
 ```
 
-Its existing user-details behavior remains separate from the newly added
-residential-area and lease-timeline contract endpoints.
+The residential-area and lease-timeline endpoints were added separately.
 
-## Summary
+---
 
-These are implementation-alignment deviations, not arbitrary contract
-changes. The original contract referred to accommodation and data resources
-that were not present in the application. The final contract uses the existing
-`properties`, `users`, and `bookings` resources, documents the fields that are
-actually persisted, and avoids promising notification, authentication, or
-workflow behavior that has not been implemented.
+## Week 6: Status-Code and Testing Changes
 
-Group_members:
-- Githaka, Gift Gicheru (193923)
-- Kungu, Ian Gachigua (220259)
-- Abdi, Yahya Ahmed (220982)
-- Olale, Tiffany Akello (221126)
+### 1. Successful responses include matching status codes
+
+Testing and integration requirements showed that successful JSON responses
+needed to expose the same status as the HTTP response. The following endpoints
+now include a `status_code` body field:
+
+- Residence area: `200`
+- Study amenities: `200`
+- Lease timeline: `200`
+- Public profile: `200`
+- Group inquiry creation: `201`
+- User creation: `201`
+- Booking creation: `201`
+- Property creation: `201`
+- User/property updates: `200`
+- Login: `200`
+
+The HTTP status line and JSON body now agree. For example, a successful group
+inquiry returns both `HTTP 201 Created` and `"status_code": 201`.
+
+### 2. Strict write validation returns `400`
+
+Write endpoints now validate required fields, exact types, and usable values
+before any database query that writes data. Invalid requests return `400 Bad
+Request` with a clear message and `"status_code": 400`.
+
+Validation covers users, bookings, properties, and group inquiries, including
+empty strings, malformed dates, invalid numeric values, invalid booleans, and
+invalid arrays.
+
+### 3. Browser GET requests to the POST-only group-inquiry URL
+
+Testing showed that opening the group-inquiry URL in a browser sends `GET`,
+although the endpoint is implemented as `POST`. The server now returns:
+
+```text
+405 Method Not Allowed
+```
+
+with an `Allow: POST` header and a clear JSON message. The OpenAPI contract
+remains POST-only because consumers must submit inquiries using `POST`; the
+unsupported browser GET is not documented as a callable endpoint.
+
+---
+
+
