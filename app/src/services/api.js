@@ -225,7 +225,7 @@ export async function registerUser({ name, email, password, role = 'student', ca
       return { success: false, message: 'Please provide a valid email address.' };
     }
 
-    const res = await addUser({ name, email, role, campus, residence_area, phone, course, student_id });
+    const res = await addUser({ name, email, password, role, campus, residence_area, phone, course, student_id });
     const user = {
       id: res.user_id || `user-${Date.now()}`,
       name,

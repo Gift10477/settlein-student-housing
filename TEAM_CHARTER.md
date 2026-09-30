@@ -42,7 +42,7 @@ Every entity ("Thing") that SettleIn stores, alongside all operations and action
   * `admin_suspend_user` / `admin_reinstate_user`
 
 ### 2. Authentication Sessions (`sessions` / `auth`)
-* **Data Stored:** Session ID, user ID, JWT token / refresh token, client IP address, user agent, expiration timestamp, active status.
+* **Data Stored:** Session ID, user ID, client IP address, user agent, expiration timestamp, active status.
 * **Actions Available:**
   * `login` (Authenticate credentials and issue tokens)
   * `logout` (Invalidate current session)

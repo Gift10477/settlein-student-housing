@@ -94,6 +94,11 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) to view the application in your browser.
 
+### Backend access
+
+The five Week 7 partner endpoints are publicly callable, matching the current
+Shamba Direct partner contract. They do not require a token or login request.
+
 ---
 
 ##  Team Members

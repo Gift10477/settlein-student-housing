@@ -165,7 +165,7 @@ graph TD
 * **NFR-P03 (STK Push Dispatch)**: Payment checkout requests must trigger the M-PESA STK prompt on the user's phone within 3 seconds of initiation.
 
 ### 6.3 Security & Privacy
-* **NFR-S01 (Authentication & Authorization)**: Passwords must be hashed using industry-standard hashing algorithms (e.g., bcrypt/argon2). API routes must be protected using JWT tokens.
+* **NFR-S01 (Authentication & Authorization)**: Passwords must be hashed using industry-standard hashing algorithms (e.g., bcrypt/argon2). Public partner API routes must validate and return only the fields specified by their contracts.
 * **NFR-S02 (Contact Masking)**: Landlord direct phone numbers and WhatsApp links must remain masked and protected from scraping until a booking is verified or initiated.
 * **NFR-S03 (Data Protection Compliance)**: Student personal data must comply with the Kenya Data Protection Act (2019). No plain-text storage of payment PINs or national identity numbers.
 

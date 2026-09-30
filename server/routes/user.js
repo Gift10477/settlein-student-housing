@@ -1,6 +1,43 @@
 const express = require('express');
+const crypto = require('crypto');
+const { promisify } = require('util');
 const router = express.Router();
 const db = require('../db');
+
+const scrypt = promisify(crypto.scrypt);
+let authColumnsReady;
+
+async function ensureAuthColumns() {
+  if (!authColumnsReady) {
+    authColumnsReady = db.query(
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL'
+    ).catch((error) => {
+      authColumnsReady = null;
+      throw error;
+    });
+  }
+  await authColumnsReady;
+}
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = await scrypt(password, salt, 64);
+  return `scrypt:${salt}:${derivedKey.toString('hex')}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  if (typeof storedHash !== 'string' || !storedHash.startsWith('scrypt:')) return false;
+  const [, salt, expectedHex] = storedHash.split(':');
+  if (!salt || !expectedHex) return false;
+  const derivedKey = await scrypt(password, salt, 64);
+  const expected = Buffer.from(expectedHex, 'hex');
+  return expected.length === derivedKey.length && crypto.timingSafeEqual(expected, derivedKey);
+}
+
+function publicUser(user) {
+  const { password_hash, password, ...safeUser } = user;
+  return safeUser;
+}
 
 function badRequest(res, message) {
   return res.status(400).json({ error: 'Bad Request', message, status_code: 400 });
@@ -299,13 +336,17 @@ router.get('/:id', async (req, res) => {
 // 6. INSERT new user
 router.post('/', async (req, res) => {
   try {
+    await ensureAuthColumns();
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return badRequest(res, 'Request body must be a JSON object.');
     }
-    const { name, email, student_id, course, campus, residence_area, phone, role } = req.body;
+    const { name, email, password, student_id, course, campus, residence_area, phone, role } = req.body;
 
     if (!isNonEmptyString(name)) return badRequest(res, "Field 'name' is required and must be a non-empty string.");
     if (!isValidEmail(email)) return badRequest(res, "Field 'email' must be a valid email string.");
+    if (!isNonEmptyString(password) || password.length < 8) {
+      return badRequest(res, "Field 'password' must be at least 8 characters long.");
+    }
     if (!isOptionalString(student_id) || !isOptionalString(course) ||
         !isOptionalString(campus) || !isOptionalString(residence_area) ||
         !isOptionalString(phone) || !isOptionalString(role)) {
@@ -315,12 +356,13 @@ router.post('/', async (req, res) => {
     let result;
     try {
       const sql = `
-        INSERT INTO users (name, email, student_id, course, campus, residence_area, phone, role)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (name, email, password_hash, student_id, course, campus, residence_area, phone, role)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const values = [
         name,
         email,
+        await hashPassword(password),
         student_id || '',
         course || '',
         campus || 'strathmore',
@@ -332,12 +374,13 @@ router.post('/', async (req, res) => {
     } catch (colErr) {
       // Fallback if student_id column is not in existing table
       const sqlFallback = `
-        INSERT INTO users (name, email, course, campus, residence_area, phone, role)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (name, email, password_hash, course, campus, residence_area, phone, role)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const valuesFallback = [
         name,
         email,
+        await hashPassword(password),
         course || '',
         campus || 'strathmore',
         residence_area || '',
@@ -364,21 +407,28 @@ router.post('/', async (req, res) => {
 // 7. POST login
 router.post('/login', async (req, res) => {
   try {
+    await ensureAuthColumns();
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return badRequest(res, 'Request body must be a JSON object.');
     }
-    const { email } = req.body;
+    const { email, password } = req.body;
     if (!isValidEmail(email)) return badRequest(res, "Field 'email' must be a valid email string.");
+    if (!isNonEmptyString(password)) return badRequest(res, "Field 'password' is required.");
 
     const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'No account found with this email address' });
+      return res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password.', status_code: 401 });
     }
 
+    if (!(await verifyPassword(password, rows[0].password_hash))) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password.', status_code: 401 });
+    }
+
+    const user = publicUser(rows[0]);
     res.json({
       status_code: 200,
       message: 'Signed in successfully!',
-      user: rows[0]
+      user
     });
   } catch (err) {
     console.error('Login error:', err);

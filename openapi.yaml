@@ -28,8 +28,6 @@ paths:
       operationId: getStudentResidenceArea
       tags:
         - Students & Location
-      security:
-        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -96,8 +94,6 @@ paths:
       operationId: getPropertyStudyAmenities
       tags:
         - Accommodations & Amenities
-      security:
-        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -160,8 +156,6 @@ paths:
       operationId: getStudentLeaseTimeline
       tags:
         - Students & Location
-      security:
-        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -237,8 +231,6 @@ paths:
       operationId: getStudentPublicProfile
       tags:
         - User Identity & Profiles
-      security:
-        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -266,17 +258,6 @@ paths:
                 is_verified_student: true
                 avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
                 created_at: "2025-01-15T14:22:10Z"
-        '401':
-          description: Unauthorized request.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                message: "Missing bearer authentication token."
-                status_code: 401
-                timestamp: "2026-09-09T09:45:00Z"
         '404':
           description: User not found.
           content:
@@ -309,8 +290,6 @@ paths:
       operationId: createGroupInquiry
       tags:
         - Accommodations & Amenities
-      security:
-        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -352,13 +331,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Enter the JWT bearer token received upon login.
-
   schemas:
     ResidenceAreaResponse:
       type: object
