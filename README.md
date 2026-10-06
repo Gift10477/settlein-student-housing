@@ -99,6 +99,16 @@ Open [http://localhost:5173](http://localhost:5173) to view the application in y
 The five Week 7 partner endpoints are publicly callable, matching the current
 Shamba Direct partner contract. They do not require a token or login request.
 
+### Part C partner tests
+
+The Shamba Direct contract-based tests are in
+`server/__tests__/shamba_direct.test.js`. Once Team 14 provides a running
+base URL, set `SHAMBA_API_URL` and any valid resource IDs, then run:
+
+```powershell
+npm test -- shamba_direct --runInBand
+```
+
 ---
 
 ##  Team Members
