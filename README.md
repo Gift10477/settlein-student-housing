@@ -84,15 +84,52 @@ Make sure you have the following installed on your machine:
    npm install
    ```
 
+3. **Install backend dependencies and configure the database:**
+   ```bash
+   cd ../server
+   npm install
+   ```
+
+   On PowerShell, create the environment file with:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   Start MySQL locally and create a database named `settlein_db`, or update
+   `server/.env` with the connection details for an existing MySQL database.
+   Then create the tables and sample data by importing
+   [`server/database/schema.sql`](./server/database/schema.sql):
+
+   ```bash
+   mysql -u root -p < server/database/schema.sql
+   ```
+
+   On Windows, the same file can be imported through phpMyAdmin by opening
+   the **Import** tab for the `settlein_db` database and selecting
+   `server/database/schema.sql`.
+
 ### Running the Application
 
-Start the development server:
+Start the frontend in one terminal:
 
 ```bash
+cd app
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) to view the application in your browser.
+
+Start the API in a second terminal:
+
+```bash
+cd server
+npm start
+```
+
+The API is available at [http://localhost:5000](http://localhost:5000). The
+`localhost` URL is accessible only from the computer running the server; it is
+not a public or remotely accessible deployment URL.
 
 ### Backend access
 
