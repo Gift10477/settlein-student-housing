@@ -150,6 +150,18 @@ the app is in development mode. They match the OpenAPI contract in
 Once the server is running, open **[http://localhost:5000/docs](http://localhost:5000/docs)**
 to browse the full interactive API reference (rendered by Redoc).
 
+The rendered documentation is also committed as a standalone HTML file, so it
+can be opened without running the frontend, backend, or MySQL:
+
+- Open [`docs/index.html`](./docs/index.html) directly from the cloned
+  repository.
+- On Windows, double-click
+  `docs\index.html`, or open that file in a browser.
+
+The standalone page contains the rendered OpenAPI contract and does not fetch
+the specification from the local API. The interactive "Try it" requests still
+require a reachable API server.
+
 You can also fetch the raw contract:
 
 ```bash
