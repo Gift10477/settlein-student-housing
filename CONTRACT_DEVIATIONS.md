@@ -69,10 +69,9 @@ POST /api/v1/properties/group-inquiries
 ```
 
 The application already uses the `properties` table as its accommodation
-resource. There was no separate accommodation resource or
-`group_inquiries` table. The endpoint therefore uses `properties` and stores
-inquiry records in the `properties.group_inquiries` column for matched
-verified properties.
+resource. The endpoint matches verified vacant properties, then stores the
+submitted inquiry in the separate `group_inquiries` table. The matched
+property count is returned in the response.
 
 The contract no longer promises notification dispatch because the backend does
 not implement a notification service.
@@ -222,4 +221,94 @@ unsupported browser GET is not documented as a callable endpoint.
 
 ---
 
+## Week 7: Upstream Partner Contract Tests (Shamba Direct / Team 14)
 
+**Upstream partner:** Team 14 — Shamba Direct (Agricultural & Farmer Produce Marketplace)
+**Test file:** `server/__tests__/shamba_direct.test.js`
+
+The test suite is designed to run against Team 14's live API. When
+`SHAMBA_API_URL` is not set, all tests in the suite are automatically skipped
+so they do not block our own CI run.
+
+### Changes made to the test file
+
+1. **Base URL normalisation** — the helper now strips trailing slashes and
+   appends `/api` when the configured URL does not already end with `/api`.
+   This prevents double-slash path issues regardless of how the partner URL is
+   formatted.
+
+2. **Non-integer ID rejection tests** — three new test cases verify that
+   the partner correctly rejects string IDs (`not-an-id`) with `400` for
+   `/listings/{id}`, `/farmers/{id}/rating`, and `/headquarters/{id}`.
+   This was raised as a contract ambiguity in Week 4 (Question 1).
+
+3. **Flexible GPS field assertions** — the headquarters shape test was
+   relaxed from `expect.any(Number)` to allow `null` for `latitude` and
+   `longitude`, reflecting that Team 14 may omit GPS data for some records
+   while still being contract-compliant.
+
+4. **Enquiry URL typo corrected** — the POST endpoint path was corrected
+   from `/enquires` to `/enquiries` to match the actual Shamba Direct
+   OpenAPI contract.
+
+### Campus extended for group inquiries
+
+`Kenyatta University` was added to the `ALLOWED_INQUIRY_CAMPUSES` whitelist
+in `server/routes/properties.js` and to the `campusPatterns` lookup so that
+group inquiries targeting `ku` or `kenyatta university` properties now match
+and persist correctly.
+
+### Group inquiries now use a dedicated table
+
+The group inquiry write path was refactored. Instead of embedding inquiry JSON
+inside each matched `properties.group_inquiries` column, the inquiry record
+is now inserted once into a standalone `group_inquiries` table and the matched
+property count is returned in the response. This is cleaner and avoids
+unbounded JSON growth in the properties table.
+
+---
+
+## Week 8: API Documentation, Security Stubs, and Error Handling
+
+### 1. OpenAPI contract now passes linting with zero errors
+
+The following issues raised by `@redocly/cli lint` were fixed:
+
+- **License field** — `info.license` (`MIT`) was added to satisfy the
+  `info-license` rule.
+- **Security defined** — a root-level `security: [bearerAuth: []]` declaration
+  was added, covering all five partner endpoints at once rather than
+  repeating security on each operation.
+- **Bearer auth security scheme** — `components.securitySchemes.bearerAuth`
+  was added with type `http`, scheme `bearer`, and `bearerFormat: JWT`. The
+  description notes that this is a Week 8 transition stub; full JWT signing
+  validation starts in Week 9.
+
+The two remaining linter warnings (`no-server-example.com` for localhost and
+`no-unused-components` for the `Property` schema) are acceptable deviations:
+the localhost entry is intentional for local development, and the `Property`
+schema is kept for documentation purposes.
+
+### 2. API documentation is now browsable at runtime
+
+The server now exposes two new paths:
+
+| Path | Description |
+|---|---|
+| `GET /docs` | Rendered Redoc HTML generated from `openapi.yaml` |
+| `GET /openapi.yaml` | Raw OpenAPI 3.0 contract file |
+
+The HTML is pre-built by `npx @redocly/cli build-docs openapi.yaml -o docs/index.html`
+and served as a static file from `docs/`. Consumers can open
+`http://localhost:5000/docs` in a browser to explore all five partner endpoints
+interactively without needing a separate tool.
+
+### 3. Global JSON error handler added
+
+A four-argument Express error middleware was added at the bottom of `app.js`.
+It catches malformed JSON payloads (which Express throws as `SyntaxError` with
+`status 400`) and wraps them in the standard `ErrorResponse` schema used
+everywhere else in the API. Previously, a bad JSON body would produce an HTML
+error page rather than the documented JSON structure.
+
+---

@@ -10,11 +10,16 @@ info:
   contact:
     name: SettleIn Engineering Team (Gift Githaka, Ian Kungu, Yahya Abdi, Tiffany Olale)
     email: support@settlein.strathmore.edu
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
 servers:
   - url: http://localhost:5000
     description: Local development backend server
   - url: https://api.settlein.strathmore.edu
     description: Production staging API server
+security:
+  - bearerAuth: []
 
 paths:
   /api/v1/users/{id}/residence-area:
@@ -102,7 +107,7 @@ paths:
           schema:
             type: string
             minLength: 1
-            example: "prop-305"
+            example: "prop-1788905456824"
       responses:
         '200':
           description: Property study amenities retrieved successfully.
@@ -112,8 +117,8 @@ paths:
                 $ref: '#/components/schemas/StudyAmenitiesResponse'
               example:
                 status_code: 200
-                accommodation_id: "prop-305"
-                accommodation_name: "Strathmore View Executive Hostels"
+                accommodation_id: "prop-1788905456824"
+                accommodation_name: "Sunrise Student Court"
                 wifi_rating: 4.5
                 wifi_speed_mbps: 50
                 has_dedicated_desk: true
@@ -123,7 +128,7 @@ paths:
                   ends_at: "06:00"
                   policy_enforced: true
                 max_study_guests: 4
-                last_inspected_at: "2026-09-22T09:00:00Z"
+                last_inspected_at: "2026-09-22T06:28:28.000Z"
         '404':
           description: Property not found.
           content:
@@ -177,7 +182,7 @@ paths:
                 user_id: 1042
                 student_id: "193923"
                 booking_id: 782
-                accommodation_name: "Strathmore View Executive Hostels"
+                accommodation_name: "Sunrise Student Court"
                 lease_status: "active"
                 move_in_date: "2026-08-20T08:00:00Z"
                 expected_arrival_time: "10:00 AM"
@@ -296,6 +301,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateGroupInquiryRequest'
+            example:
+              group_id: "grp-tripolos-study-group"
+              initiator_student_id: 13
+              member_student_ids:
+                - 13
+                - 11
+              target_campus: "Kenyatta University"
+              preferred_room_type: "shared-apartment"
+              max_budget_per_person_kes: 18000
+              move_in_target_date: "2026-10-20"
+              notes: "Looking for a shared apartment similar to Ngando Legacy Hall."
       responses:
         '201':
           description: Group accommodation inquiry created successfully.
@@ -306,9 +322,9 @@ paths:
               example:
                 status_code: 201
                 inquiry_id: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
-                group_id: "grp-studysync-981"
+                group_id: "grp-tripolos-study-group"
                 status: "submitted"
-                matched_accommodations_count: 4
+                matched_accommodations_count: 1
                 created_at: "2026-09-09T09:45:00Z"
                 message: "Group accommodation inquiry recorded successfully."
         '400':
@@ -331,6 +347,15 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Week 8 placeholder authentication. Upstream callers should pass an Authorization header
+        with 'Bearer <token>'. In Week 8, any string token is accepted while the API operates
+        in transition mode; full signing validation begins in Week 9.
   schemas:
     ResidenceAreaResponse:
       type: object
@@ -408,11 +433,11 @@ components:
         accommodation_id:
           type: string
           description: Property identifier from the properties table.
-          example: "prop-305"
+          example: "prop-1788905456824"
         accommodation_name:
           type: string
           description: Property title.
-          example: "Strathmore View Executive Hostels"
+          example: "Sunrise Student Court"
         wifi_rating:
           type: number
           format: float
@@ -458,20 +483,20 @@ components:
         id:
           type: string
           description: Property identifier from the database.
-          example: "prop-305"
+          example: "prop-1788905456824"
         title:
           type: string
           description: Property title.
-          example: "Strathmore View Executive Hostels"
+          example: "Sunrise Student Court"
         type:
           type: string
           description: Accommodation type.
-          example: "Hostel Room"
+          example: "Bedsitter"
         price:
           type: integer
           minimum: 0
           description: Monthly rent in Kenyan shillings.
-          example: 18000
+          example: 15000
         location:
           type: string
           description: Property location or estate.
@@ -484,7 +509,7 @@ components:
           type: string
           nullable: true
           description: Distance or commute description.
-          example: "0.8 km (~10 mins walk)"
+          example: "Near Campus"
         verified:
           type: boolean
           description: Verification flag normalized by the API.
@@ -493,23 +518,28 @@ components:
           type: string
           nullable: true
           description: Primary image URL.
+          example: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
         description:
           type: string
           nullable: true
+          example: ""
         landlord:
           type: string
           nullable: true
+          example: "Independent Landlord"
         phone:
           type: string
           nullable: true
+          example: "+254 700 999 888"
         whatsapp:
           type: string
           nullable: true
+          example: "+254 700 999 888"
         vacant_units:
           type: integer
           minimum: 0
           description: Number of currently vacant units.
-          example: 4
+          example: 1
         amenities:
           type: array
           description: Amenities normalized from the database string into an array.
@@ -517,13 +547,16 @@ components:
             type: string
           example:
             - "Wi-Fi"
-            - "Water"
+            - "CCTV"
+            - "Borehole"
         images:
           type: array
           description: Image list normalized by the API.
           items:
             type: string
             format: uri
+          example:
+            - "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
         reviews:
           type: array
           description: Reviews normalized by the API; the current properties table does not contain a reviews column.
@@ -531,6 +564,7 @@ components:
         created_at:
           type: string
           format: date-time
+          example: "2026-09-08T22:10:56.000Z"
         wifi_rating:
           type: number
           format: float
@@ -601,7 +635,7 @@ components:
         accommodation_name:
           type: string
           description: Name of the booked accommodation property.
-          example: "Strathmore View Executive Hostels"
+          example: "Sunrise Student Court"
         lease_status:
           type: string
           enum:
@@ -743,6 +777,7 @@ components:
             - "Madaraka Main Campus"
             - "Town Campus"
             - "Parklands Campus"
+            - "Kenyatta University"
         preferred_room_type:
           type: string
           enum:

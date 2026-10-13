@@ -138,7 +138,8 @@ function formatStudyAmenities(p) {
 const ALLOWED_INQUIRY_CAMPUSES = [
   'Madaraka Main Campus',
   'Town Campus',
-  'Parklands Campus'
+  'Parklands Campus',
+  'Kenyatta University'
 ];
 
 const ALLOWED_INQUIRY_ROOM_TYPES = [
@@ -186,7 +187,8 @@ function campusPatterns(campus) {
   return {
     'Madaraka Main Campus': ['strathmore', 'madaraka', 'madaraka main campus'],
     'Town Campus': ['town', 'town campus'],
-    'Parklands Campus': ['parklands', 'parklands campus']
+    'Parklands Campus': ['parklands', 'parklands campus'],
+    'Kenyatta University': ['ku', 'kenyatta university']
   }[campus] || [];
 }
 
@@ -318,7 +320,7 @@ router.post('/group-inquiries', async (req, res) => {
     try {
       await connection.beginTransaction();
       const [rows] = await connection.query(
-        `SELECT id, group_inquiries
+        `SELECT id
          FROM properties
          WHERE LOWER(TRIM(campus)) IN (${campusPlaceholders})
            AND (${roomTypeConditions})
@@ -340,14 +342,34 @@ router.post('/group-inquiries', async (req, res) => {
         });
       }
 
-      for (const property of matches) {
-        const inquiries = parseGroupInquiries(property.group_inquiries, property.id);
-        inquiries.push(inquiry);
-        await connection.query(
-          'UPDATE properties SET group_inquiries = ? WHERE id = ?',
-          [JSON.stringify(inquiries), property.id]
-        );
-      }
+      await connection.query(
+        `INSERT INTO group_inquiries (
+          inquiry_id,
+          group_id,
+          initiator_student_id,
+          member_student_ids,
+          target_campus,
+          preferred_room_type,
+          max_budget_per_person_kes,
+          move_in_target_date,
+          notes,
+          status,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          inquiry.inquiry_id,
+          inquiry.group_id,
+          inquiry.initiator_student_id,
+          JSON.stringify(inquiry.member_student_ids),
+          inquiry.target_campus,
+          inquiry.preferred_room_type,
+          inquiry.max_budget_per_person_kes,
+          inquiry.move_in_target_date,
+          inquiry.notes,
+          inquiry.status,
+          inquiry.created_at
+        ]
+      );
       await connection.commit();
     } catch (error) {
       await connection.rollback();

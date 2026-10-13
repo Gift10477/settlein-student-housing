@@ -2,6 +2,8 @@ openapi: 3.0.0
 info:
   title: Shamba Direct API
   version: 1.0.0
+servers:
+  - url: /api
 
 paths:
   /listings:
@@ -58,6 +60,10 @@ paths:
                   county: { type: string, example: Kirinyaga }
         '404':
           description: Listing not found
+        '400':
+          description: listing_id must be an integer
+        
+        
 
   /market-prices:
     get:
@@ -99,6 +105,7 @@ paths:
               schema:
                 type: array
                 items:
+                  type: object
                   properties:
                     farmer_id: { type: integer, example: 1 }
                     farmer_name: { type: string, example: John Kamau }
@@ -128,6 +135,9 @@ paths:
                     rating: { type: number, example: 4.8 }
         '404':
           description: Farmer not found
+        '400':
+          description: farmer_id must be an integer
+        
 
   /headquarters:
     get:
@@ -150,10 +160,10 @@ paths:
                   properties:
                     id: { type: integer, example: 1 }
                     region_name: { type: string, example: Shamba direct nairobi hub }
-                    address: { type: string, example: Ngong Road,Kiatumu plaza }
+                    address: { type: string, example: "Ngong Road,Kiatumu plaza" }
                     county: { type: string, example: nairobi}
-                    latitude: { type: number, example: -1.2921 }
-                    longitude: { type: number, example: 36.8219 }
+                    latitude: { type: number, nullable: true, example: -1.2921 }
+                    longitude: { type: number, nullable: true, example: 36.8219 }
 
   /headquarters/{id}:
     get:
@@ -174,16 +184,18 @@ paths:
                 properties:
                   id: { type: integer, example: 1 }
                   region_name: { type: string, example: Shamba direct nairobi hub }
-                  address: { type: string, example: Ngong Road,Kiatumu plaza }
+                  address: { type: string, example: "Ngong Road,Kiatumu plaza" }
                   county: { type: string, example: nairobi}
                   latitude: { type: number, example: -1.2921 }
                   longitude: { type: number, example: 36.8219 }
+        '400':
+          description: id must be an integer
         '404':
           description: Headquarters not found
 
 
-/enquires: 
-  post:
+  /enquiries:
+    post:
       summary: Submit an enquiry about a produce listing
       requestBody:
         required: true
@@ -207,6 +219,6 @@ paths:
                   message: { type: string, example: Enquiry submitted successfully }
                   id: { type: integer, example: 5 }
         '400':
-          description: Missing required fields
+          description: Missing or invalid fields
         '404':
-          description: Listing not found
+          description: Listing or buyer not found

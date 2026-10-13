@@ -1,6 +1,9 @@
 const request = require('supertest');
 
-const baseUrl = process.env.SHAMBA_API_URL;
+const configuredBaseUrl = process.env.SHAMBA_API_URL;
+const baseUrl = configuredBaseUrl
+  ? `${configuredBaseUrl.replace(/\/+$/, '')}${/\/api$/i.test(configuredBaseUrl) ? '' : '/api'}`
+  : '';
 const listingId = process.env.SHAMBA_LISTING_ID || '1';
 const farmerId = process.env.SHAMBA_FARMER_ID || '1';
 const headquartersId = process.env.SHAMBA_HEADQUARTERS_ID || '1';
@@ -50,6 +53,13 @@ partnerSuite('Shamba Direct partner API', () => {
     expect(response.status).toBe(404);
   });
 
+  it('rejects a listing ID that is not an integer', async () => {
+    const response = await request(baseUrl)
+      .get('/listings/not-an-id');
+
+    expect(response.status).toBe(400);
+  });
+
   it('returns current market prices', async () => {
     const response = await request(baseUrl)
       .get('/market-prices');
@@ -90,6 +100,13 @@ partnerSuite('Shamba Direct partner API', () => {
     expect(response.status).toBe(404);
   });
 
+  it('rejects a farmer ID that is not an integer', async () => {
+    const response = await request(baseUrl)
+      .get('/farmers/not-an-id/rating');
+
+    expect(response.status).toBe(400);
+  });
+
   it('returns headquarters', async () => {
     const response = await request(baseUrl)
       .get('/headquarters');
@@ -107,10 +124,10 @@ partnerSuite('Shamba Direct partner API', () => {
       id: expect.any(Number),
       region_name: expect.any(String),
       address: expect.any(String),
-      county: expect.any(String),
-      latitude: expect.any(Number),
-      longitude: expect.any(Number)
+      county: expect.any(String)
     }));
+    expect(response.body.latitude === null || typeof response.body.latitude === 'number').toBe(true);
+    expect(response.body.longitude === null || typeof response.body.longitude === 'number').toBe(true);
   });
 
   it('returns 404 for a headquarters that does not exist', async () => {
@@ -120,9 +137,16 @@ partnerSuite('Shamba Direct partner API', () => {
     expect(response.status).toBe(404);
   });
 
+  it('rejects a headquarters ID that is not an integer', async () => {
+    const response = await request(baseUrl)
+      .get('/headquarters/not-an-id');
+
+    expect(response.status).toBe(400);
+  });
+
   it('rejects an enquiry with missing required fields', async () => {
     const response = await request(baseUrl)
-      .post('/enquires')
+      .post('/enquiries')
       .send({});
 
     expect(response.status).toBe(400);

@@ -96,20 +96,48 @@ Open [http://localhost:5173](http://localhost:5173) to view the application in y
 
 ### Backend access
 
-The five Week 7 partner endpoints are publicly callable, matching the current
-Shamba Direct partner contract. They do not require a token or login request.
+The five partner endpoints are publicly callable without authentication while
+the app is in development mode. They match the OpenAPI contract in
+[`openapi.yaml`](./openapi.yaml).
 
-### Part C partner tests
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/users/{id}/residence-area` | GET | Student estate name and campus proximity |
+| `/api/v1/properties/{id}/study-amenities` | GET | Wi-Fi, desk space, and quiet-hours details |
+| `/api/v1/users/{id}/lease-timeline` | GET | Lease start, move-in, and relocation window |
+| `/api/v1/users/{id}/public-profile` | GET | Verified student identity and university info |
+| `/api/v1/properties/group-inquiries` | POST | Submit a shared-housing co-living inquiry |
+
+### API documentation
+
+Once the server is running, open **[http://localhost:5000/docs](http://localhost:5000/docs)**
+to browse the full interactive API reference (rendered by Redoc).
+
+You can also fetch the raw contract:
+
+```bash
+curl http://localhost:5000/openapi.yaml
+```
+
+### Partner tests (Part C — Shamba Direct)
 
 The Shamba Direct contract-based tests are in
 `server/__tests__/shamba_direct.test.js`. Once Team 14 provides a running
 base URL, set `SHAMBA_API_URL` and any valid resource IDs, then run:
 
 ```powershell
+$env:SHAMBA_API_URL="https://their-api-url.example.com"
 npm test -- shamba_direct --runInBand
 ```
 
+To run just our own endpoint tests (no upstream dependency):
+
+```powershell
+npm test -- --runInBand --forceExit
+```
+
 ---
+
 
 ##  Team Members
 
