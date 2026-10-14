@@ -127,9 +127,11 @@ cd server
 npm start
 ```
 
-The API is available at [http://localhost:5000](http://localhost:5000). The
-`localhost` URL is accessible only from the computer running the server; it is
-not a public or remotely accessible deployment URL.
+The API is available locally at [http://localhost:5000](http://localhost:5000)
+and publicly through the current ngrok tunnel at
+[https://displease-startling-throwing.ngrok-free.dev](https://displease-startling-throwing.ngrok-free.dev).
+The public URL remains available only while the ngrok tunnel and local server
+are running.
 
 ### Backend access
 
@@ -156,7 +158,9 @@ in development mode. They match the OpenAPI contract in
 ### API documentation
 
 Once the server is running, open **[http://localhost:5000/docs](http://localhost:5000/docs)**
-to browse the full interactive API reference (rendered by Redoc).
+to browse the full interactive API reference (rendered by Redoc). The public
+documentation URL is
+[https://displease-startling-throwing.ngrok-free.dev/docs](https://displease-startling-throwing.ngrok-free.dev/docs).
 
 The rendered documentation is also committed as a standalone HTML file, so it
 can be opened without running the frontend, backend, or MySQL:
@@ -172,7 +176,7 @@ The standalone page contains the rendered OpenAPI contract. The interactive
 You can also fetch the raw contract:
 
 ```bash
-curl http://localhost:5000/openapi.yaml
+curl https://displease-startling-throwing.ngrok-free.dev/openapi.yaml
 ```
 
 ### Partner tests (Part C — Shamba Direct)

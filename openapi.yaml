@@ -16,8 +16,8 @@ info:
 servers:
   - url: http://localhost:5000
     description: Local development backend server
-  - url: https://api.settlein.strathmore.edu
-    description: Production staging API server
+  - url: https://displease-startling-throwing.ngrok-free.dev
+    description: Public development API tunnel (ngrok)
 paths:
   /api/v1/users/{id}/residence-area:
     get:
