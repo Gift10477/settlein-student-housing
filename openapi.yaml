@@ -18,9 +18,6 @@ servers:
     description: Local development backend server
   - url: https://api.settlein.strathmore.edu
     description: Production staging API server
-security:
-  - bearerAuth: []
-
 paths:
   /api/v1/users/{id}/residence-area:
     get:
@@ -346,7 +343,358 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/users:
+    post:
+      summary: Create a user
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            example:
+              name: "Tripolos OpenAPI"
+              email: "tripolos.openapi@example.com"
+              password: "Tripolos2026!"
+              student_id: "193923-OPENAPI"
+              course: "Bachelor of Business Information Technology"
+              campus: "strathmore"
+              residence_area: "Madaraka Estate"
+              phone: "0712648910"
+              role: "student"
+      responses:
+        '201':
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
+          description: Invalid user data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A user with the supplied email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: User could not be persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/login:
+    post:
+      summary: Sign in a user
+      operationId: loginUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "tripolos.openapi@example.com"
+              password: "Tripolos2026!"
+      responses:
+        '200':
+          description: User signed in successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid login request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Login failed because of a database error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/{id}:
+    put:
+      summary: Update a user
+      operationId: updateUser
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateResponse'
+              example:
+                status_code: 200
+                message: "User updated successfully in database"
+        '400':
+          description: Invalid user update.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: User could not be updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a user
+      operationId: deleteUser
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+              example:
+                message: "User deleted successfully from database"
+        '404':
+          description: User was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: User could not be deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/properties:
+    post:
+      summary: Create a property
+      operationId: createProperty
+      tags:
+        - Properties
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePropertyRequest'
+            example:
+              title: "Ngando Legacy Hall"
+              type: "Shared Apartment"
+              price: 18000
+              location: "Ngando, Nairobi"
+              campus: "ku"
+              distance: "0.8km · Kenyatta University"
+              description: "Premium shared apartments with city views."
+              landlord: "Legacy Real Estate"
+              phone: "+254 712 000 103"
+              whatsapp: "+254 712 000 103"
+              vacant_units: 1
+              amenities:
+                - "Wi-Fi"
+                - "Hot Shower"
+                - "Balcony"
+                - "CCTV"
+                - "Gym"
+              image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
+              wifi_rating: 4.5
+              wifi_speed_mbps: 50
+              has_dedicated_desk: true
+              has_backup_generator: true
+              quiet_hours_start: "22:00"
+              quiet_hours_end: "06:00"
+              quiet_hours_policy_enforced: true
+              max_study_guests: 4
+              last_inspected_at: "2026-10-14T05:00:00Z"
+      responses:
+        '201':
+          description: Property created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePropertyResponse'
+        '400':
+          description: Invalid property data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Property could not be persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/properties/{id}:
+    put:
+      summary: Update a property
+      operationId: updateProperty
+      tags:
+        - Properties
+      parameters:
+        - $ref: '#/components/parameters/PropertyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePropertyRequest'
+      responses:
+        '200':
+          description: Property updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateResponse'
+              example:
+                status_code: 200
+                message: "Property updated successfully in database"
+        '400':
+          description: Invalid property update.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Property was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Property could not be updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a property
+      operationId: deleteProperty
+      tags:
+        - Properties
+      parameters:
+        - $ref: '#/components/parameters/PropertyId'
+      responses:
+        '200':
+          description: Property deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+              example:
+                message: "Property deleted successfully from database"
+        '404':
+          description: Property was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Property could not be deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings:
+    post:
+      summary: Create a booking
+      operationId: createBooking
+      tags:
+        - Bookings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+            example:
+              user_id: 13
+              student_id: "193923"
+              property_id: "prop-003"
+              property_title: "Ngando Legacy Hall"
+              move_in_date: "2026-10-20T08:00:00Z"
+              expected_arrival_time: "10:00 AM"
+              lease_duration: "1 Semester (4 months)"
+              notes: "Please confirm the room and arrival instructions."
+      responses:
+        '201':
+          description: Booking created and lease dates calculated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBookingResponse'
+        '400':
+          description: Invalid booking data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Booking could not be persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: Numeric user ID from the users table.
+      schema:
+        type: integer
+        minimum: 1
+        example: 13
+    PropertyId:
+      name: id
+      in: path
+      required: true
+      description: String property ID from the properties table.
+      schema:
+        type: string
+        minLength: 1
+        example: "prop-003"
   securitySchemes:
     bearerAuth:
       type: http
@@ -477,8 +825,6 @@ components:
         - verified
         - vacant_units
         - amenities
-        - images
-        - reviews
       properties:
         id:
           type: string
@@ -797,6 +1143,434 @@ components:
           type: string
           maxLength: 500
 
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+        student_id:
+          type: string
+          minLength: 1
+        course:
+          type: string
+          minLength: 1
+        campus:
+          type: string
+          minLength: 1
+          default: strathmore
+        residence_area:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          minLength: 1
+          default: student
+
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - student_id
+        - course
+        - campus
+        - residence_area
+        - phone
+        - role
+        - created_at
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        student_id:
+          type: string
+          nullable: true
+        course:
+          type: string
+        campus:
+          type: string
+        residence_area:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        university_affiliation:
+          type: string
+          nullable: true
+        campus_branch:
+          type: string
+          nullable: true
+        year_of_study:
+          type: integer
+          nullable: true
+        is_verified_student:
+          type: boolean
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+
+    CreateUserResponse:
+      type: object
+      required:
+        - status_code
+        - message
+        - user_id
+      properties:
+        status_code:
+          type: integer
+          enum: [201]
+        message:
+          type: string
+          example: "User inserted successfully into database"
+        user_id:
+          type: integer
+          minimum: 1
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          writeOnly: true
+
+    LoginResponse:
+      type: object
+      required:
+        - status_code
+        - message
+        - user
+      properties:
+        status_code:
+          type: integer
+          enum: [200]
+        message:
+          type: string
+          example: "Signed in successfully!"
+        user:
+          $ref: '#/components/schemas/User'
+
+    UpdateUserRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        student_id:
+          type: string
+          minLength: 1
+        course:
+          type: string
+          minLength: 1
+        campus:
+          type: string
+          minLength: 1
+        residence_area:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          minLength: 1
+
+    CreatePropertyRequest:
+      type: object
+      required:
+        - title
+        - type
+        - price
+        - location
+        - campus
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        location:
+          type: string
+          minLength: 1
+        campus:
+          type: string
+          minLength: 1
+        distance:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        landlord:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        whatsapp:
+          type: string
+          minLength: 1
+        vacant_units:
+          type: integer
+          minimum: 0
+        amenities:
+          oneOf:
+            - type: string
+              minLength: 1
+            - type: array
+              items:
+                type: string
+                minLength: 1
+        image:
+          type: string
+          minLength: 1
+        images:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        wifi_rating:
+          type: number
+          minimum: 0
+          maximum: 5
+        wifi_speed_mbps:
+          type: integer
+          minimum: 0
+        has_dedicated_desk:
+          type: boolean
+        has_backup_generator:
+          type: boolean
+        quiet_hours_start:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        quiet_hours_end:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        quiet_hours_policy_enforced:
+          type: boolean
+        max_study_guests:
+          type: integer
+          minimum: 0
+        last_inspected_at:
+          type: string
+          format: date-time
+
+    UpdatePropertyRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        location:
+          type: string
+          minLength: 1
+        campus:
+          type: string
+          minLength: 1
+        vacant_units:
+          type: integer
+          minimum: 0
+        description:
+          type: string
+
+    CreatePropertyResponse:
+      type: object
+      required:
+        - status_code
+        - message
+        - id
+        - property
+      properties:
+        status_code:
+          type: integer
+          enum: [201]
+        message:
+          type: string
+          example: "Property inserted successfully into database"
+        id:
+          type: string
+        property:
+          $ref: '#/components/schemas/Property'
+
+    UpdateResponse:
+      type: object
+      required:
+        - status_code
+        - message
+      properties:
+        status_code:
+          type: integer
+          enum: [200]
+        message:
+          type: string
+
+    DeleteResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - user_id
+        - property_id
+      additionalProperties: false
+      properties:
+        user_id:
+          type: integer
+          minimum: 1
+        student_id:
+          type: string
+          minLength: 1
+        property_id:
+          type: string
+          minLength: 1
+        property_title:
+          type: string
+          minLength: 1
+        move_in_date:
+          oneOf:
+            - type: string
+              format: date
+            - type: string
+              format: date-time
+        expected_arrival_time:
+          type: string
+          minLength: 1
+        lease_duration:
+          type: string
+          minLength: 1
+          default: "1 Semester (4 months)"
+        notes:
+          type: string
+
+    Booking:
+      type: object
+      required:
+        - booking_id
+        - user_id
+        - student_id
+        - property_id
+        - accommodation_name
+        - status
+        - move_in_date
+        - expected_arrival_time
+        - lease_start_date
+        - lease_end_date
+        - relocation_window_start
+        - relocation_window_end
+        - booked_at
+      properties:
+        booking_id:
+          type: integer
+          minimum: 1
+        user_id:
+          type: integer
+          minimum: 1
+        student_id:
+          type: string
+        property_id:
+          type: string
+        accommodation_name:
+          type: string
+        status:
+          type: string
+          enum: [active]
+        move_in_date:
+          type: string
+          format: date-time
+        expected_arrival_time:
+          type: string
+        lease_start_date:
+          type: string
+          format: date
+        lease_end_date:
+          type: string
+          format: date
+        relocation_window_start:
+          type: string
+          format: date-time
+        relocation_window_end:
+          type: string
+          format: date-time
+        booked_at:
+          type: string
+          format: date-time
+
+    CreateBookingResponse:
+      type: object
+      required:
+        - status_code
+        - message
+        - booking_id
+        - booking
+      properties:
+        status_code:
+          type: integer
+          enum: [201]
+        message:
+          type: string
+          example: "Booking confirmed and recorded in database in real time!"
+        booking_id:
+          type: integer
+          minimum: 1
+        booking:
+          $ref: '#/components/schemas/Booking'
+
     GroupInquiryResponse:
       type: object
       required:
@@ -835,7 +1609,6 @@ components:
         - error
         - message
         - status_code
-        - timestamp
       properties:
         error:
           type: string

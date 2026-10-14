@@ -133,8 +133,8 @@ not a public or remotely accessible deployment URL.
 
 ### Backend access
 
-The five partner endpoints are publicly callable without authentication while
-the app is in development mode. They match the OpenAPI contract in
+The API endpoints are publicly callable without authentication while the app is
+in development mode. They match the OpenAPI contract in
 [`openapi.yaml`](./openapi.yaml).
 
 | Endpoint | Method | Description |
@@ -143,7 +143,15 @@ the app is in development mode. They match the OpenAPI contract in
 | `/api/v1/properties/{id}/study-amenities` | GET | Wi-Fi, desk space, and quiet-hours details |
 | `/api/v1/users/{id}/lease-timeline` | GET | Lease start, move-in, and relocation window |
 | `/api/v1/users/{id}/public-profile` | GET | Verified student identity and university info |
+| `/api/v1/users` | POST | Create a user account |
+| `/api/v1/users/login` | POST | Sign in a user |
+| `/api/v1/users/{id}` | PUT | Update a user |
+| `/api/v1/users/{id}` | DELETE | Delete a user |
+| `/api/v1/properties` | POST | Create a property listing |
+| `/api/v1/properties/{id}` | PUT | Update a property listing |
+| `/api/v1/properties/{id}` | DELETE | Delete a property listing |
 | `/api/v1/properties/group-inquiries` | POST | Submit a shared-housing co-living inquiry |
+| `/api/v1/bookings` | POST | Create a property booking and calculate lease dates |
 
 ### API documentation
 
@@ -158,9 +166,8 @@ can be opened without running the frontend, backend, or MySQL:
 - On Windows, double-click
   `docs\index.html`, or open that file in a browser.
 
-The standalone page contains the rendered OpenAPI contract and does not fetch
-the specification from the local API. The interactive "Try it" requests still
-require a reachable API server.
+The standalone page contains the rendered OpenAPI contract. The interactive
+"Try it" requests still require a reachable API server.
 
 You can also fetch the raw contract:
 
