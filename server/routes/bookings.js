@@ -1,3 +1,6 @@
+const safeLog = require('../safeLog');
+const { requireUser, requireOwner } = require('../middleware/access');
+const { allowFields } = require('../middleware/fields');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -14,6 +17,10 @@ function validDate(value) {
   if (!isNonEmptyString(value)) return false;
   const parsed = new Date(value);
   return !Number.isNaN(parsed.getTime()) && /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value);
+}
+
+function publicBooking(row) {
+  return Object.fromEntries(['id', 'user_id', 'student_id', 'property_id', 'property_title', 'status', 'move_in_date', 'expected_arrival_time', 'lease_start_date', 'lease_end_date', 'relocation_window_start', 'relocation_window_end', 'lease_duration', 'notes', 'created_at'].map((field) => [field, row[field]]));
 }
 
 // Ensure bookings table exists in MySQL database
@@ -43,7 +50,7 @@ async function initBookingsTable() {
   } catch (err) {
     // ALTER TABLE error is acceptable if DB engine doesn't support IF NOT EXISTS
     if (!err.message.includes('Duplicate column')) {
-      console.error('Error initializing bookings table:', err.message);
+      safeLog('Database operation failed');
     }
   }
 }
@@ -51,29 +58,29 @@ async function initBookingsTable() {
 initBookingsTable();
 
 // 1. GET all bookings
-router.get('/', async (req, res) => {
+router.get('/', requireUser, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM bookings ORDER BY id DESC');
-    res.json(rows);
+    const [rows] = await db.query('SELECT * FROM bookings WHERE user_id = ? ORDER BY id DESC', [req.userId]);
+    res.json(rows.map(publicBooking));
   } catch (err) {
-    console.error('SELECT bookings error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch bookings from database' });
   }
 });
 
 // 2. GET bookings by user ID
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', requireOwner((req) => req.params.userId), async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM bookings WHERE user_id = ? ORDER BY id DESC', [req.params.userId]);
-    res.json(rows);
+    res.json(rows.map(publicBooking));
   } catch (err) {
-    console.error('SELECT user bookings error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch user bookings' });
   }
 });
 
 // 3. POST new booking (Real-time direct booking)
-router.post('/', async (req, res) => {
+router.post('/', requireOwner((req) => req.body?.user_id), allowFields(['user_id', 'student_id', 'property_id', 'property_title', 'move_in_date', 'expected_arrival_time', 'lease_duration', 'notes']), async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return badRequest(res, 'Request body must be a JSON object.');
@@ -193,8 +200,8 @@ router.post('/', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('INSERT booking error:', err);
-    res.status(500).json({ error: 'Failed to create booking in database', details: err.message });
+    safeLog('Database operation failed');
+    res.status(500).json({ error: 'Failed to create booking in database', status_code: 500 });
   }
 });
 

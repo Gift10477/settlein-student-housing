@@ -2,31 +2,39 @@ openapi: 3.0.0
 info:
   title: SettleIn Student Accommodation API
   description: >-
-    Official OpenAPI 3.0 contract for SettleIn (Team 1) — Student Housing & Accommodation Marketplace.
-    This contract specifies the interface exposed to our downstream ring partner, StudySync (Team 2),
-    for student residential locations, accommodation study amenities, lease timelines, verified student
-    identities, and co-living group inquiries.
+    Official OpenAPI 3.0 contract for SettleIn (Team 1) — Student Housing & Accommodation Marketplace. This
+    contract specifies the interface exposed to our downstream ring partner, StudySync (Team 2), for student
+    residential locations, accommodation study amenities, lease timelines, verified student identities, and
+    co-living group inquiries.
+
+    All requests require X-API-Key: <your-api-key>. Limit: 3 authenticated requests per API key per 15
+    minutes, shared across routes. Private user/booking operations additionally require the owner's one-hour
+    bearer login token. No separate admin key is used.
   version: 1.0.0
   contact:
-    name: SettleIn Engineering Team (Gift Githaka, Ian Kungu, Yahya Abdi, Tiffany Olale)
+    name: 'SettleIn Engineering Team (Gift Githaka, Ian Kungu, Yahya Abdi, Tiffany Olale)'
     email: support@settlein.strathmore.edu
   license:
     name: MIT
-    url: https://opensource.org/licenses/MIT
+    url: 'https://opensource.org/licenses/MIT'
 servers:
-  - url: http://localhost:5000
+  - url: 'http://localhost:5000'
     description: Local development backend server
-  - url: https://displease-startling-throwing.ngrok-free.dev
+  - url: 'https://displease-startling-throwing.ngrok-free.dev'
     description: Public development API tunnel (ngrok)
+security:
+  - apiKeyAuth: []
 paths:
-  /api/v1/users/{id}/residence-area:
+  '/api/v1/users/{id}/residence-area':
     get:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Retrieve student residential estate and campus proximity
       description: >-
-        Returns the student's residential estate name, calculated distance/commute to campus,
-        and nearest campus branch. Used by StudySync to identify central meetup locations
-        and recommend convenient study group venues without requiring exact GPS coordinates.
-        Exact building and room numbers remain private.
+        Returns the student's residential estate name, calculated distance/commute to campus, and nearest
+        campus branch. Used by StudySync to identify central meetup locations and recommend convenient study
+        group venues without requiring exact GPS coordinates. Exact building and room numbers remain private.
       operationId: getStudentResidenceArea
       tags:
         - Students & Location
@@ -49,21 +57,14 @@ paths:
               example:
                 status_code: 200
                 user_id: 1042
-                estate_name: "Madaraka Estate"
-                nearest_campus: "Madaraka Main Campus"
-                distance_to_campus: "0.8 km (~10 mins walk)"
-                cached_at: "2026-09-09T08:30:00Z"
+                estate_name: Madaraka Estate
+                nearest_campus: Madaraka Main Campus
+                distance_to_campus: 0.8 km (~10 mins walk)
+                cached_at: '2026-09-09T08:30:00Z'
         '401':
-          description: Unauthorized — Missing or invalid authentication token.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                message: "Authentication token is missing or expired."
-                status_code: 401
-                timestamp: "2026-09-09T09:45:00Z"
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: User not found or residential location not configured.
           content:
@@ -71,10 +72,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "User with ID 1042 does not have an active residential area on file."
+                error: Not Found
+                message: User with ID 1042 does not have an active residential area on file.
                 status_code: 404
-                timestamp: "2026-09-09T09:45:00Z"
+                timestamp: '2026-09-09T09:45:00Z'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Internal server error.
           content:
@@ -82,17 +85,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Internal Server Error"
-                message: "An unexpected error occurred while querying student residence data."
+                error: Internal Server Error
+                message: An unexpected error occurred while querying student residence data.
                 status_code: 500
-                timestamp: "2026-09-09T09:45:00Z"
-
-  /api/v1/properties/{id}/study-amenities:
+                timestamp: '2026-09-09T09:45:00Z'
+  '/api/v1/properties/{id}/study-amenities':
     get:
       summary: Retrieve property study amenities
       description: >-
-        Returns study-conducive amenities for a property, including verified Wi-Fi quality,
-        dedicated desk space, backup power, quiet-hours policy, and the latest inspection time.
+        Returns study-conducive amenities for a property, including verified Wi-Fi quality, dedicated desk
+        space, backup power, quiet-hours policy, and the latest inspection time.
       operationId: getPropertyStudyAmenities
       tags:
         - Accommodations & Amenities
@@ -104,7 +106,7 @@ paths:
           schema:
             type: string
             minLength: 1
-            example: "prop-1788905456824"
+            example: prop-1788905456824
       responses:
         '200':
           description: Property study amenities retrieved successfully.
@@ -114,18 +116,20 @@ paths:
                 $ref: '#/components/schemas/StudyAmenitiesResponse'
               example:
                 status_code: 200
-                accommodation_id: "prop-1788905456824"
-                accommodation_name: "Sunrise Student Court"
+                accommodation_id: prop-1788905456824
+                accommodation_name: Sunrise Student Court
                 wifi_rating: 4.5
                 wifi_speed_mbps: 50
                 has_dedicated_desk: true
                 has_backup_generator: true
                 quiet_hours:
-                  starts_at: "22:00"
-                  ends_at: "06:00"
+                  starts_at: '22:00'
+                  ends_at: '06:00'
                   policy_enforced: true
                 max_study_guests: 4
-                last_inspected_at: "2026-09-22T06:28:28.000Z"
+                last_inspected_at: '2026-09-22T06:28:28.000Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           description: Property not found.
           content:
@@ -133,10 +137,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "Property not found"
+                error: Not Found
+                message: Property not found
                 status_code: 404
-                timestamp: "2026-09-09T09:45:00Z"
+                timestamp: '2026-09-09T09:45:00Z'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Internal server error.
           content:
@@ -144,17 +150,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Internal Server Error"
-                message: "Failed to fetch property study amenities"
+                error: Internal Server Error
+                message: Failed to fetch property study amenities
                 status_code: 500
-                timestamp: "2026-09-09T09:45:00Z"
-
-  /api/v1/users/{id}/lease-timeline:
+                timestamp: '2026-09-09T09:45:00Z'
+  '/api/v1/users/{id}/lease-timeline':
     get:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Retrieve a user's lease timeline and relocation dates
       description: >-
-        Returns a student user's confirmed move-in date, expected arrival time, lease start date, and lease expiration date.
-        Allows StudySync to mark relocation periods as unavailable or busy on group collaboration calendars.
+        Returns a student user's confirmed move-in date, expected arrival time, lease start date, and lease
+        expiration date. Allows StudySync to mark relocation periods as unavailable or busy on group
+        collaboration calendars.
       operationId: getStudentLeaseTimeline
       tags:
         - Students & Location
@@ -177,29 +186,22 @@ paths:
               example:
                 status_code: 200
                 user_id: 1042
-                student_id: "193923"
+                student_id: '193923'
                 booking_id: 782
-                accommodation_name: "Sunrise Student Court"
-                lease_status: "active"
-                move_in_date: "2026-08-20T08:00:00Z"
-                expected_arrival_time: "10:00 AM"
-                lease_start_date: "2026-09-01"
-                lease_end_date: "2026-12-15"
-                relocation_window_start: "2026-08-19T00:00:00Z"
-                relocation_window_end: "2026-08-22T23:59:59Z"
+                accommodation_name: Sunrise Student Court
+                lease_status: active
+                move_in_date: '2026-08-20T08:00:00Z'
+                expected_arrival_time: '10:00 AM'
+                lease_start_date: '2026-09-01'
+                lease_end_date: '2026-12-15'
+                relocation_window_start: '2026-08-19T00:00:00Z'
+                relocation_window_end: '2026-08-22T23:59:59Z'
                 is_relocating: false
-                booked_at: "2026-09-22T07:30:00Z"
+                booked_at: '2026-09-22T07:30:00Z'
         '401':
-          description: Unauthorized — Access restricted to verified group peers or the student.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                message: "You are not authorized to view lease schedules for this user."
-                status_code: 401
-                timestamp: "2026-09-09T09:45:00Z"
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Student or lease booking record not found.
           content:
@@ -207,10 +209,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "No active lease timeline found for user ID 1042."
+                error: Not Found
+                message: No active lease timeline found for user ID 1042.
                 status_code: 404
-                timestamp: "2026-09-09T09:45:00Z"
+                timestamp: '2026-09-09T09:45:00Z'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Internal server error.
           content:
@@ -218,18 +222,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Internal Server Error"
-                message: "Database failure when querying lease timeline."
+                error: Internal Server Error
+                message: Database failure when querying lease timeline.
                 status_code: 500
-                timestamp: "2026-09-09T09:45:00Z"
-
-  /api/v1/users/{id}/public-profile:
+                timestamp: '2026-09-09T09:45:00Z'
+  '/api/v1/users/{id}/public-profile':
     get:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Retrieve verified student public profile and university affiliation
       description: >-
-        Returns verified student public identity including display name, university affiliation,
-        campus branch, degree program, and verified status. Prevents duplicate credential entry
-        and verifies peer identity for study collaboration.
+        Returns verified student public identity including display name, university affiliation, campus
+        branch, degree program, and verified status. Prevents duplicate credential entry and verifies peer
+        identity for study collaboration.
       operationId: getStudentPublicProfile
       tags:
         - User Identity & Profiles
@@ -252,14 +258,18 @@ paths:
               example:
                 status_code: 200
                 user_id: 1042
-                display_name: "Tiffany Akello"
-                university_affiliation: "Strathmore University"
-                campus_branch: "Madaraka Main Campus"
-                course_of_study: "Bachelor of Business Information Technology (BBIT)"
+                display_name: Tiffany Akello
+                university_affiliation: Strathmore University
+                campus_branch: Madaraka Main Campus
+                course_of_study: Bachelor of Business Information Technology (BBIT)
                 year_of_study: 3
                 is_verified_student: true
-                avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
-                created_at: "2025-01-15T14:22:10Z"
+                avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+                created_at: '2025-01-15T14:22:10Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: User not found.
           content:
@@ -267,10 +277,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "User ID 1042 does not exist."
+                error: Not Found
+                message: User ID 1042 does not exist.
                 status_code: 404
-                timestamp: "2026-09-09T09:45:00Z"
+                timestamp: '2026-09-09T09:45:00Z'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Internal server error.
           content:
@@ -278,17 +290,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Internal Server Error"
-                message: "Unable to fetch student profile."
+                error: Internal Server Error
+                message: Unable to fetch student profile.
                 status_code: 500
-                timestamp: "2026-09-09T09:45:00Z"
-
+                timestamp: '2026-09-09T09:45:00Z'
   /api/v1/properties/group-inquiries:
     post:
       summary: Submit a shared-housing co-living group inquiry
       description: >-
-        Creates a shared-housing inquiry and records it on matched verified properties
-        in the existing properties table.
+        Creates a shared-housing inquiry and records it on matched verified properties in the existing
+        properties table.
       operationId: createGroupInquiry
       tags:
         - Accommodations & Amenities
@@ -299,16 +310,16 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateGroupInquiryRequest'
             example:
-              group_id: "grp-tripolos-study-group"
+              group_id: grp-tripolos-study-group
               initiator_student_id: 13
               member_student_ids:
                 - 13
                 - 11
-              target_campus: "Kenyatta University"
-              preferred_room_type: "shared-apartment"
+              target_campus: Kenyatta University
+              preferred_room_type: shared-apartment
               max_budget_per_person_kes: 18000
-              move_in_target_date: "2026-10-20"
-              notes: "Looking for a shared apartment similar to Ngando Legacy Hall."
+              move_in_target_date: '2026-10-20'
+              notes: Looking for a shared apartment similar to Ngando Legacy Hall.
       responses:
         '201':
           description: Group accommodation inquiry created successfully.
@@ -318,31 +329,34 @@ paths:
                 $ref: '#/components/schemas/GroupInquiryResponse'
               example:
                 status_code: 201
-                inquiry_id: "e7b8c2f1-4321-4f89-8d7b-9182fa34b012"
-                group_id: "grp-tripolos-study-group"
-                status: "submitted"
+                inquiry_id: e7b8c2f1-4321-4f89-8d7b-9182fa34b012
+                group_id: grp-tripolos-study-group
+                status: submitted
                 matched_accommodations_count: 1
-                created_at: "2026-09-09T09:45:00Z"
-                message: "Group accommodation inquiry recorded successfully."
+                created_at: '2026-09-09T09:45:00Z'
+                message: Group accommodation inquiry recorded successfully.
         '400':
           description: Invalid inquiry data.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '422':
-          description: No verified vacant property matches the requested campus, room type, and budget.
+          description: 'No verified vacant property matches the requested campus, room type, and budget.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Inquiry could not be persisted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/users:
     post:
       summary: Create a user
@@ -356,15 +370,15 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateUserRequest'
             example:
-              name: "Tripolos OpenAPI"
-              email: "tripolos.openapi@example.com"
-              password: "Tripolos2026!"
-              student_id: "193923-OPENAPI"
-              course: "Bachelor of Business Information Technology"
-              campus: "strathmore"
-              residence_area: "Madaraka Estate"
-              phone: "0712648910"
-              role: "student"
+              name: Tripolos OpenAPI
+              email: tripolos.openapi@example.com
+              password: Tripolos2026!
+              student_id: 193923-OPENAPI
+              course: Bachelor of Business Information Technology
+              campus: strathmore
+              residence_area: Madaraka Estate
+              phone: 0712648910
+              role: student
       responses:
         '201':
           description: User created successfully.
@@ -378,19 +392,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '409':
           description: A user with the supplied email already exists.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: User could not be persisted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/users/login:
     post:
       summary: Sign in a user
@@ -404,8 +421,8 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
             example:
-              email: "tripolos.openapi@example.com"
-              password: "Tripolos2026!"
+              email: tripolos.openapi@example.com
+              password: Tripolos2026!
       responses:
         '200':
           description: User signed in successfully.
@@ -420,20 +437,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Invalid email or password.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Login failed because of a database error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/v1/users/{id}:
+  '/api/v1/users/{id}':
     put:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Update a user
       operationId: updateUser
       tags:
@@ -455,19 +472,25 @@ paths:
                 $ref: '#/components/schemas/UpdateResponse'
               example:
                 status_code: 200
-                message: "User updated successfully in database"
+                message: User updated successfully in database
         '400':
           description: Invalid user update.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: User was not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: User could not be updated.
           content:
@@ -475,6 +498,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
     delete:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Delete a user
       operationId: deleteUser
       tags:
@@ -489,20 +515,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteResponse'
               example:
-                message: "User deleted successfully from database"
+                message: User deleted successfully from database
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: User was not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: User could not be deleted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/properties:
     post:
       summary: Create a property
@@ -516,33 +547,33 @@ paths:
             schema:
               $ref: '#/components/schemas/CreatePropertyRequest'
             example:
-              title: "Ngando Legacy Hall"
-              type: "Shared Apartment"
+              title: Ngando Legacy Hall
+              type: Shared Apartment
               price: 18000
-              location: "Ngando, Nairobi"
-              campus: "ku"
-              distance: "0.8km · Kenyatta University"
-              description: "Premium shared apartments with city views."
-              landlord: "Legacy Real Estate"
-              phone: "+254 712 000 103"
-              whatsapp: "+254 712 000 103"
+              location: 'Ngando, Nairobi'
+              campus: ku
+              distance: 0.8km · Kenyatta University
+              description: Premium shared apartments with city views.
+              landlord: Legacy Real Estate
+              phone: +254 712 000 103
+              whatsapp: +254 712 000 103
               vacant_units: 1
               amenities:
-                - "Wi-Fi"
-                - "Hot Shower"
-                - "Balcony"
-                - "CCTV"
-                - "Gym"
-              image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
+                - Wi-Fi
+                - Hot Shower
+                - Balcony
+                - CCTV
+                - Gym
+              image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80'
               wifi_rating: 4.5
               wifi_speed_mbps: 50
               has_dedicated_desk: true
               has_backup_generator: true
-              quiet_hours_start: "22:00"
-              quiet_hours_end: "06:00"
+              quiet_hours_start: '22:00'
+              quiet_hours_end: '06:00'
               quiet_hours_policy_enforced: true
               max_study_guests: 4
-              last_inspected_at: "2026-10-14T05:00:00Z"
+              last_inspected_at: '2026-10-14T05:00:00Z'
       responses:
         '201':
           description: Property created successfully.
@@ -556,14 +587,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Property could not be persisted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/v1/properties/{id}:
+  '/api/v1/properties/{id}':
     put:
       summary: Update a property
       operationId: updateProperty
@@ -586,19 +620,23 @@ paths:
                 $ref: '#/components/schemas/UpdateResponse'
               example:
                 status_code: 200
-                message: "Property updated successfully in database"
+                message: Property updated successfully in database
         '400':
           description: Invalid property update.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           description: Property was not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Property could not be updated.
           content:
@@ -620,22 +658,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteResponse'
               example:
-                message: "Property deleted successfully from database"
+                message: Property deleted successfully from database
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           description: Property was not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Property could not be deleted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/bookings:
     post:
+      security:
+        - apiKeyAuth: []
+          bearerAuth: []
       summary: Create a booking
       operationId: createBooking
       tags:
@@ -648,13 +692,13 @@ paths:
               $ref: '#/components/schemas/CreateBookingRequest'
             example:
               user_id: 13
-              student_id: "193923"
-              property_id: "prop-003"
-              property_title: "Ngando Legacy Hall"
-              move_in_date: "2026-10-20T08:00:00Z"
-              expected_arrival_time: "10:00 AM"
-              lease_duration: "1 Semester (4 months)"
-              notes: "Please confirm the room and arrival instructions."
+              student_id: '193923'
+              property_id: prop-003
+              property_title: Ngando Legacy Hall
+              move_in_date: '2026-10-20T08:00:00Z'
+              expected_arrival_time: '10:00 AM'
+              lease_duration: 1 Semester (4 months)
+              notes: Please confirm the room and arrival instructions.
       responses:
         '201':
           description: Booking created and lease dates calculated successfully.
@@ -668,13 +712,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           description: Booking could not be persisted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
+  /health:
+    get:
+      summary: Check API health
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: API process is running. Does not test database connectivity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - timestamp
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  timestamp:
+                    type: string
+                    format: date-time
+              example:
+                status: ok
+                timestamp: '2026-10-27T09:00:00.000Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 components:
   parameters:
     UserId:
@@ -694,16 +774,20 @@ components:
       schema:
         type: string
         minLength: 1
-        example: "prop-003"
+        example: prop-003
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      bearerFormat: opaque
       description: >-
-        Week 8 placeholder authentication. Upstream callers should pass an Authorization header
-        with 'Bearer <token>'. In Week 8, any string token is accepted while the API operates
-        in transition mode; full signing validation begins in Week 9.
+        One-hour login token returned by POST /api/v1/users/login. Private user routes require the owner's
+        token plus X-API-Key. There is no separate admin key. See SECURITY_AUDIT.md for access rules.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API consumer key configured in API_KEYS; this alone does not identify a user.
   schemas:
     ResidenceAreaResponse:
       type: object
@@ -717,7 +801,8 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
           example: 200
         user_id:
           type: integer
@@ -726,21 +811,20 @@ components:
         estate_name:
           type: string
           description: Residential estate or neighborhood name where the student currently resides.
-          example: "Madaraka Estate"
+          example: Madaraka Estate
         nearest_campus:
           type: string
           description: Automatically calculated nearest university campus branch.
-          example: "Madaraka Main Campus"
+          example: Madaraka Main Campus
         distance_to_campus:
           type: string
           description: Calculated walking or transit commute distance to the nearest campus.
-          example: "0.8 km (~10 mins walk)"
+          example: 0.8 km (~10 mins walk)
         cached_at:
           type: string
           format: date-time
           description: ISO 8601 timestamp representing when location data was cached.
-          example: "2026-09-09T08:30:00Z"
-
+          example: '2026-09-09T08:30:00Z'
     QuietHours:
       type: object
       required:
@@ -750,16 +834,15 @@ components:
       properties:
         starts_at:
           type: string
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
-          example: "22:00"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          example: '22:00'
         ends_at:
           type: string
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
-          example: "06:00"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          example: '06:00'
         policy_enforced:
           type: boolean
           example: true
-
     StudyAmenitiesResponse:
       type: object
       required:
@@ -776,16 +859,17 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
           example: 200
         accommodation_id:
           type: string
           description: Property identifier from the properties table.
-          example: "prop-1788905456824"
+          example: prop-1788905456824
         accommodation_name:
           type: string
           description: Property title.
-          example: "Sunrise Student Court"
+          example: Sunrise Student Court
         wifi_rating:
           type: number
           format: float
@@ -811,8 +895,7 @@ components:
         last_inspected_at:
           type: string
           format: date-time
-          example: "2026-09-22T09:00:00Z"
-
+          example: '2026-09-22T09:00:00Z'
     Property:
       type: object
       required:
@@ -829,15 +912,15 @@ components:
         id:
           type: string
           description: Property identifier from the database.
-          example: "prop-1788905456824"
+          example: prop-1788905456824
         title:
           type: string
           description: Property title.
-          example: "Sunrise Student Court"
+          example: Sunrise Student Court
         type:
           type: string
           description: Accommodation type.
-          example: "Bedsitter"
+          example: Bedsitter
         price:
           type: integer
           minimum: 0
@@ -846,16 +929,16 @@ components:
         location:
           type: string
           description: Property location or estate.
-          example: "Madaraka Estate"
+          example: Madaraka Estate
         campus:
           type: string
           description: Campus identifier.
-          example: "strathmore"
+          example: strathmore
         distance:
           type: string
           nullable: true
           description: Distance or commute description.
-          example: "Near Campus"
+          example: Near Campus
         verified:
           type: boolean
           description: Verification flag normalized by the API.
@@ -864,23 +947,23 @@ components:
           type: string
           nullable: true
           description: Primary image URL.
-          example: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
+          example: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80'
         description:
           type: string
           nullable: true
-          example: ""
+          example: ''
         landlord:
           type: string
           nullable: true
-          example: "Independent Landlord"
+          example: Independent Landlord
         phone:
           type: string
           nullable: true
-          example: "+254 700 999 888"
+          example: +254 700 999 888
         whatsapp:
           type: string
           nullable: true
-          example: "+254 700 999 888"
+          example: +254 700 999 888
         vacant_units:
           type: integer
           minimum: 0
@@ -892,9 +975,9 @@ components:
           items:
             type: string
           example:
-            - "Wi-Fi"
-            - "CCTV"
-            - "Borehole"
+            - Wi-Fi
+            - CCTV
+            - Borehole
         images:
           type: array
           description: Image list normalized by the API.
@@ -902,7 +985,7 @@ components:
             type: string
             format: uri
           example:
-            - "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
+            - 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80'
         reviews:
           type: array
           description: Reviews normalized by the API; the current properties table does not contain a reviews column.
@@ -910,7 +993,7 @@ components:
         created_at:
           type: string
           format: date-time
-          example: "2026-09-08T22:10:56.000Z"
+          example: '2026-09-08T22:10:56.000Z'
         wifi_rating:
           type: number
           format: float
@@ -930,11 +1013,11 @@ components:
         quiet_hours_start:
           type: string
           nullable: true
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
         quiet_hours_end:
           type: string
           nullable: true
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
         quiet_hours_policy_enforced:
           type: boolean
           nullable: true
@@ -946,7 +1029,6 @@ components:
           type: string
           format: date-time
           nullable: true
-
     LeaseTimelineResponse:
       type: object
       required:
@@ -964,7 +1046,8 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
           example: 200
         user_id:
           type: integer
@@ -973,7 +1056,7 @@ components:
         student_id:
           type: string
           description: Official university student registration number.
-          example: "193923"
+          example: '193923'
         booking_id:
           type: integer
           description: Unique lease or booking identifier.
@@ -981,7 +1064,7 @@ components:
         accommodation_name:
           type: string
           description: Name of the booked accommodation property.
-          example: "Sunrise Student Court"
+          example: Sunrise Student Court
         lease_status:
           type: string
           enum:
@@ -991,36 +1074,36 @@ components:
             - terminated
             - completed
           description: Current lifecycle state of the accommodation lease.
-          example: "active"
+          example: active
         move_in_date:
           type: string
           format: date-time
           description: Exact scheduled move-in arrival timestamp (ISO 8601).
-          example: "2026-08-20T08:00:00Z"
+          example: '2026-08-20T08:00:00Z'
         expected_arrival_time:
           type: string
           description: Expected time of arrival on move-in day.
-          example: "10:00 AM"
+          example: '10:00 AM'
         lease_start_date:
           type: string
           format: date
           description: Official contractual tenancy start date.
-          example: "2026-09-01"
+          example: '2026-09-01'
         lease_end_date:
           type: string
           format: date
           description: Official contractual tenancy expiration date.
-          example: "2026-12-15"
+          example: '2026-12-15'
         relocation_window_start:
           type: string
           format: date-time
           description: Beginning of the student's moving window for calendar unavailability.
-          example: "2026-08-19T00:00:00Z"
+          example: '2026-08-19T00:00:00Z'
         relocation_window_end:
           type: string
           format: date-time
           description: End of the student's moving window for calendar unavailability.
-          example: "2026-08-22T23:59:59Z"
+          example: '2026-08-22T23:59:59Z'
         is_relocating:
           type: boolean
           description: True if the current server timestamp falls inside the relocation window.
@@ -1029,8 +1112,7 @@ components:
           type: string
           format: date-time
           description: Real-time ISO 8601 timestamp when the booking was submitted and recorded in database.
-          example: "2026-09-22T07:30:00Z"
-
+          example: '2026-09-22T07:30:00Z'
     PublicProfileResponse:
       type: object
       required:
@@ -1047,7 +1129,8 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
           example: 200
         user_id:
           type: integer
@@ -1056,23 +1139,23 @@ components:
         display_name:
           type: string
           description: Full display name of the verified student.
-          example: "Tiffany Akello"
+          example: Tiffany Akello
         university_affiliation:
           type: string
           description: Official university or college institution name.
-          example: "Strathmore University"
+          example: Strathmore University
         campus_branch:
           type: string
           enum:
-            - "Madaraka Main Campus"
-            - "Town Campus"
-            - "Parklands Campus"
+            - Madaraka Main Campus
+            - Town Campus
+            - Parklands Campus
           description: Specific branch campus the student attends.
-          example: "Madaraka Main Campus"
+          example: Madaraka Main Campus
         course_of_study:
           type: string
           description: Academic degree program or course.
-          example: "Bachelor of Business Information Technology (BBIT)"
+          example: Bachelor of Business Information Technology (BBIT)
         year_of_study:
           type: integer
           minimum: 1
@@ -1087,13 +1170,12 @@ components:
           type: string
           format: uri
           description: Direct HTTPS link to student profile picture.
-          example: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+          example: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
         created_at:
           type: string
           format: date-time
           description: Account registration timestamp.
-          example: "2025-01-15T14:22:10Z"
-
+          example: '2025-01-15T14:22:10Z'
     CreateGroupInquiryRequest:
       type: object
       required:
@@ -1120,18 +1202,18 @@ components:
         target_campus:
           type: string
           enum:
-            - "Madaraka Main Campus"
-            - "Town Campus"
-            - "Parklands Campus"
-            - "Kenyatta University"
+            - Madaraka Main Campus
+            - Town Campus
+            - Parklands Campus
+            - Kenyatta University
         preferred_room_type:
           type: string
           enum:
-            - "1-bedroom"
-            - "2-bedroom"
-            - "3-bedroom"
-            - "4-bedroom"
-            - "shared-apartment"
+            - 1-bedroom
+            - 2-bedroom
+            - 3-bedroom
+            - 4-bedroom
+            - shared-apartment
         max_budget_per_person_kes:
           type: integer
           minimum: 1000
@@ -1142,7 +1224,6 @@ components:
         notes:
           type: string
           maxLength: 500
-
     CreateUserRequest:
       type: object
       required:
@@ -1181,7 +1262,6 @@ components:
           type: string
           minLength: 1
           default: student
-
     User:
       type: object
       required:
@@ -1235,7 +1315,6 @@ components:
         avatar_url:
           type: string
           nullable: true
-
     CreateUserResponse:
       type: object
       required:
@@ -1245,14 +1324,14 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [201]
+          enum:
+            - 201
         message:
           type: string
-          example: "User inserted successfully into database"
+          example: User inserted successfully into database
         user_id:
           type: integer
           minimum: 1
-
     LoginRequest:
       type: object
       required:
@@ -1267,7 +1346,6 @@ components:
           type: string
           minLength: 1
           writeOnly: true
-
     LoginResponse:
       type: object
       required:
@@ -1277,13 +1355,26 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
         message:
           type: string
-          example: "Signed in successfully!"
+          example: Signed in successfully!
         user:
           $ref: '#/components/schemas/User'
-
+        access_token:
+          type: string
+          description: >-
+            Opaque token issued only after successful login. Send as Authorization: Bearer <your-login-token>
+            with the same API key.
+        token_type:
+          type: string
+          enum:
+            - Bearer
+        expires_in:
+          type: integer
+          enum:
+            - 3600
     UpdateUserRequest:
       type: object
       minProperties: 1
@@ -1313,7 +1404,6 @@ components:
         role:
           type: string
           minLength: 1
-
     CreatePropertyRequest:
       type: object
       required:
@@ -1385,10 +1475,10 @@ components:
           type: boolean
         quiet_hours_start:
           type: string
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
         quiet_hours_end:
           type: string
-          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
         quiet_hours_policy_enforced:
           type: boolean
         max_study_guests:
@@ -1397,7 +1487,6 @@ components:
         last_inspected_at:
           type: string
           format: date-time
-
     UpdatePropertyRequest:
       type: object
       minProperties: 1
@@ -1423,7 +1512,6 @@ components:
           minimum: 0
         description:
           type: string
-
     CreatePropertyResponse:
       type: object
       required:
@@ -1434,15 +1522,15 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [201]
+          enum:
+            - 201
         message:
           type: string
-          example: "Property inserted successfully into database"
+          example: Property inserted successfully into database
         id:
           type: string
         property:
           $ref: '#/components/schemas/Property'
-
     UpdateResponse:
       type: object
       required:
@@ -1451,10 +1539,10 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [200]
+          enum:
+            - 200
         message:
           type: string
-
     DeleteResponse:
       type: object
       required:
@@ -1462,7 +1550,6 @@ components:
       properties:
         message:
           type: string
-
     CreateBookingRequest:
       type: object
       required:
@@ -1494,10 +1581,9 @@ components:
         lease_duration:
           type: string
           minLength: 1
-          default: "1 Semester (4 months)"
+          default: 1 Semester (4 months)
         notes:
           type: string
-
     Booking:
       type: object
       required:
@@ -1529,7 +1615,8 @@ components:
           type: string
         status:
           type: string
-          enum: [active]
+          enum:
+            - active
         move_in_date:
           type: string
           format: date-time
@@ -1550,7 +1637,6 @@ components:
         booked_at:
           type: string
           format: date-time
-
     CreateBookingResponse:
       type: object
       required:
@@ -1561,16 +1647,16 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [201]
+          enum:
+            - 201
         message:
           type: string
-          example: "Booking confirmed and recorded in database in real time!"
+          example: Booking confirmed and recorded in database in real time!
         booking_id:
           type: integer
           minimum: 1
         booking:
           $ref: '#/components/schemas/Booking'
-
     GroupInquiryResponse:
       type: object
       required:
@@ -1584,7 +1670,8 @@ components:
       properties:
         status_code:
           type: integer
-          enum: [201]
+          enum:
+            - 201
           example: 201
         inquiry_id:
           type: string
@@ -1593,7 +1680,8 @@ components:
           type: string
         status:
           type: string
-          enum: [submitted]
+          enum:
+            - submitted
         matched_accommodations_count:
           type: integer
           minimum: 0
@@ -1602,7 +1690,6 @@ components:
           format: date-time
         message:
           type: string
-
     ErrorResponse:
       type: object
       required:
@@ -1613,11 +1700,11 @@ components:
         error:
           type: string
           description: Short error classification title.
-          example: "Bad Request"
+          example: Bad Request
         message:
           type: string
           description: Human-readable explanation of why the request failed.
-          example: "Field 'member_student_ids' must contain at least 2 students."
+          example: Field 'member_student_ids' must contain at least 2 students.
         status_code:
           type: integer
           description: HTTP status code corresponding to the error.
@@ -1626,4 +1713,107 @@ components:
           type: string
           format: date-time
           description: ISO 8601 timestamp when the error occurred.
-          example: "2026-09-09T09:45:00Z"
+          example: '2026-09-09T09:45:00Z'
+    ApiKeyError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          enum:
+            - Missing or invalid API key
+    UserLoginRequired:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - User login required
+    InvalidCredentials:
+      type: object
+      required:
+        - error
+        - message
+        - status_code
+      properties:
+        error:
+          type: string
+          enum:
+            - Unauthorized
+        message:
+          type: string
+          enum:
+            - Invalid email or password.
+        status_code:
+          type: integer
+          enum:
+            - 401
+    RateLimitError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Too many requests, please try again later.'
+  responses:
+    Unauthorized:
+      description: >-
+        Missing, invalid, or revoked X-API-Key. Private routes also return 401 for a missing/expired owner
+        login token; login returns 401 for incorrect credentials.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/ApiKeyError'
+              - $ref: '#/components/schemas/UserLoginRequired'
+              - $ref: '#/components/schemas/InvalidCredentials'
+          examples:
+            missingOrInvalidApiKey:
+              value:
+                message: Missing or invalid API key
+            userLoginRequired:
+              value:
+                error: User login required
+            invalidCredentials:
+              value:
+                error: Unauthorized
+                message: Invalid email or password.
+                status_code: 401
+    TooManyRequests:
+      description: >-
+        More than 3 authenticated requests with the same API key in a 15-minute fixed window shared across
+        routes. Wait for Retry-After seconds. Window begins with the first authenticated request; restarting
+        the process clears counters.
+      headers:
+        Retry-After:
+          description: Seconds remaining until this key may retry. Example assumes a newly started window.
+          schema:
+            type: integer
+            minimum: 1
+          example: 900
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitError'
+          example:
+            message: 'Too many requests, please try again later.'
+    Forbidden:
+      description: The signed-in user does not own the requested user or booking records.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: string
+                enum:
+                  - Forbidden
+          example:
+            error: Forbidden

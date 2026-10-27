@@ -1,3 +1,5 @@
+const safeLog = require('../safeLog');
+const { allowFields } = require('../middleware/fields');
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
@@ -45,7 +47,7 @@ async function initializePropertyColumns() {
         last_inspected_at = COALESCE(last_inspected_at, CURRENT_TIMESTAMP)
     `);
   } catch (err) {
-    console.error('Property column migration error:', err);
+    safeLog('Database operation failed');
   }
 }
 
@@ -77,44 +79,15 @@ function formatProperty(p) {
     imagesArr = [p.image];
   }
 
-  let reviewsArr = [];
-  if (Array.isArray(p.reviews)) {
-    reviewsArr = p.reviews;
-  } else if (typeof p.reviews === 'string' && p.reviews.trim()) {
-    try {
-      reviewsArr = JSON.parse(p.reviews);
-    } catch {
-      reviewsArr = [];
-    }
-  }
-
   return {
-    ...p,
+    ...Object.fromEntries(['id', 'title', 'type', 'price', 'location', 'campus', 'distance', 'verified', 'image', 'description', 'landlord', 'phone', 'whatsapp', 'vacant_units', 'latitude', 'longitude', 'security_deposit', 'booking_fee', 'water_included', 'wifi_included', 'garbage_included', 'gender_policy', 'furnishing_status', 'wifi_rating', 'wifi_speed_mbps', 'has_dedicated_desk', 'has_backup_generator', 'quiet_hours_start', 'quiet_hours_end', 'quiet_hours_policy_enforced', 'max_study_guests', 'last_inspected_at', 'created_at'].map((field) => [field, p[field]])),
     price: Number(p.price) || 0,
     vacant_units: p.vacant_units !== undefined ? Number(p.vacant_units) : 1,
     verified: Boolean(p.verified),
-    amenities: amenitiesArr,
-    images: imagesArr,
-    reviews: reviewsArr,
-    group_inquiries: parseGroupInquiries(p.group_inquiries, p.id),
+    amenities: Array.isArray(amenitiesArr) ? amenitiesArr.filter((value) => typeof value === 'string') : [],
+    images: Array.isArray(imagesArr) ? imagesArr.filter((value) => typeof value === 'string') : [],
+
   };
-}
-
-function parseGroupInquiries(value, propertyId) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  if (typeof value !== 'string' || !value.trim()) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (parseError) {
-    console.error(`Invalid group_inquiries JSON for property ${propertyId}:`, parseError);
-    return [];
-  }
 }
 
 function formatStudyAmenities(p) {
@@ -237,13 +210,13 @@ router.get('/', async (req, res) => {
     const [rows] = await db.query(query, params);
     res.json(rows.map(formatProperty));
   } catch (err) {
-    console.error('SELECT Error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch properties from database' });
   }
 });
 
 // 2. POST a shared-housing inquiry against matched properties
-router.post('/group-inquiries', async (req, res) => {
+router.post('/group-inquiries', allowFields(['group_id', 'initiator_student_id', 'member_student_ids', 'target_campus', 'preferred_room_type', 'max_budget_per_person_kes', 'move_in_target_date', 'notes']), async (req, res) => {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
     return inquiryValidationError(res, 'Request body must be a JSON object.');
   }
@@ -388,7 +361,7 @@ router.post('/group-inquiries', async (req, res) => {
       message: 'Group accommodation inquiry recorded successfully.'
     });
   } catch (err) {
-    console.error('Create group inquiry error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to persist group inquiry to matched properties.',
@@ -426,7 +399,7 @@ router.get('/:id/study-amenities', async (req, res) => {
       ...formatStudyAmenities(rows[0])
     });
   } catch (err) {
-    console.error('SELECT property study amenities error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to fetch property study amenities',
@@ -445,13 +418,13 @@ router.get('/:id', async (req, res) => {
     }
     res.json(formatProperty(rows[0]));
   } catch (err) {
-    console.error('SELECT single property error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch property details' });
   }
 });
 
 // 5. INSERT (Create a new property)
-router.post('/', async (req, res) => {
+router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'distance', 'description', 'landlord', 'phone', 'whatsapp', 'vacant_units', 'amenities', 'image', 'images', 'latitude', 'longitude', 'security_deposit', 'booking_fee', 'water_included', 'wifi_included', 'garbage_included', 'gender_policy', 'furnishing_status', 'wifi_rating', 'wifi_speed_mbps', 'has_dedicated_desk', 'has_backup_generator', 'quiet_hours_start', 'quiet_hours_end', 'quiet_hours_policy_enforced', 'max_study_guests', 'last_inspected_at']), async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return propertyBadRequest(res, 'Request body must be a JSON object.');
@@ -503,6 +476,7 @@ router.post('/', async (req, res) => {
     if (amenities !== undefined && !Array.isArray(amenities) && !nonEmptyString(amenities)) {
       return propertyBadRequest(res, "Field 'amenities' must be an array or non-empty string.");
     }
+    if (Array.isArray(amenities) && amenities.some((value) => typeof value !== 'string')) return propertyBadRequest(res, 'Amenities must contain only strings.');
     if (images !== undefined && (!Array.isArray(images) || images.some((image) => !nonEmptyString(image)))) {
       return propertyBadRequest(res, "Field 'images' must be an array of non-empty strings.");
     }
@@ -613,13 +587,13 @@ router.post('/', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('INSERT Error:', err);
-    res.status(500).json({ error: 'Failed to insert property into database', details: err.message });
+    safeLog('Database operation failed');
+    res.status(500).json({ error: 'Failed to insert property into database', status_code: 500 });
   }
 });
 
 // 6. UPDATE (Update an existing property)
-router.put('/:id', async (req, res) => {
+router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 'vacant_units', 'description']), async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return propertyBadRequest(res, 'Request body must be a JSON object.');
@@ -681,7 +655,7 @@ router.put('/:id', async (req, res) => {
 
     res.json({ status_code: 200, message: 'Property updated successfully in database' });
   } catch (err) {
-    console.error('UPDATE Error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to update property in database' });
   }
 });
@@ -696,7 +670,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Property deleted successfully from database' });
   } catch (err) {
-    console.error('DELETE Error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to delete property from database' });
   }
 });

@@ -22,3 +22,8 @@ rad.json
 #Test results file
 TestResults.xml
 
+# Local credentials; keep only the documented example configuration.
+.env
+.env.*
+!.env.example
+

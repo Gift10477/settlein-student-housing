@@ -1,10 +1,16 @@
 const request = require('supertest');
-const app = require('../app');
+jest.mock('../db', () => ({ query: jest.fn() }));
+const { setupApi } = require('../test-support/apiHarness');
+let app, key, access;
+beforeEach(() => { ({ app, key, access } = setupApi()); });
 
-const userId = process.env.TEST_USER_ID || '13';
+const userId = '13';
 
 describe('Documented user endpoints', () => {
-  const partnerRequest = (path) => request(app).get(path);
+  // A valid session for a now-missing account still exercises the 404 contract.
+  const partnerRequest = (path) => request(app).get(path)
+    .set('X-API-Key', key)
+    .set('Authorization', `Bearer ${access.issueSession(path.split('/')[4], key)}`);
 
   it('returns the residence-area response shape', async () => {
     const response = await partnerRequest(`/api/v1/users/${userId}/residence-area`);
@@ -72,6 +78,7 @@ describe('Documented user endpoints', () => {
   it('returns a validation error when login password is missing', async () => {
     const response = await request(app)
       .post('/api/v1/users/login')
+      .set('X-API-Key', key)
       .send({ email: 'week7@example.com' });
 
     expect(response.status).toBe(400);

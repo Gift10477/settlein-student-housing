@@ -1,10 +1,13 @@
 const request = require('supertest');
-const app = require('../app');
+jest.mock('../db', () => ({ query: jest.fn() }));
+const { setupApi } = require('../test-support/apiHarness');
+let app, key;
+beforeEach(() => { ({ app, key } = setupApi()); });
 
-const propertyId = process.env.TEST_PROPERTY_ID || 'prop-002';
+const propertyId = 'prop-002';
 
 function authenticated(path) {
-  return request(app).get(path);
+  return request(app).get(path).set('X-API-Key', key);
 }
 
 describe('Documented property endpoints', () => {
@@ -34,6 +37,7 @@ describe('Documented property endpoints', () => {
   it('rejects an incomplete group inquiry', async () => {
     const response = await request(app)
       .post('/api/v1/properties/group-inquiries')
+      .set('X-API-Key', key)
       .send({});
 
     expect(response.status).toBe(400);
@@ -47,6 +51,7 @@ describe('Documented property endpoints', () => {
   it('rejects an unsupported campus in a group inquiry', async () => {
     const response = await request(app)
       .post('/api/v1/properties/group-inquiries')
+      .set('X-API-Key', key)
       .send({
         group_id: 'week7-group',
         initiator_student_id: 1,

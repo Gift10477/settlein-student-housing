@@ -28,7 +28,7 @@ The platform is divided into two primary experiences tailored for students seeki
 ##  Architecture & Core Systems
 
 - ** Light & Dark Mode**: Built-in theme management via React hooks and CSS data attributes for a comfortable viewing experience.
-- **Mock Authentication**: Custom sign-in and sign-up flows that conditionally render portal access and protect sensitive property details.
+- **API Authentication**: Backend requests require an API key; private user and booking routes also require the owner's login token. Browser UI state alone does not authorize backend access.
 - ** Custom Routing**: Fast, lightweight custom routing built entirely in React state (`activeView`), avoiding external router dependencies.
 - ** Local Data Store**: Fully functional mock database utilizing the browser's Local Storage (`db.js`) to persist users, listings, reviews, and pending submissions.
 
@@ -97,9 +97,11 @@ Make sure you have the following installed on your machine:
    ```
 
    Update `server/.env` with your local MySQL connection details and a set of
-   distinct API keys for each consumer. The project expects keys such as
-   `STUDENT_APP_API_KEY`, `LANDLORD_APP_API_KEY`, `STUDYSYNC_API_KEY`, and
-   `ADMIN_API_KEY` to be present before protected endpoints are allowed.
+   distinct API keys for each consumer in the comma-separated `API_KEYS` setting.
+   Send the consumer key in `X-API-Key`. No separate admin key is required.
+   Private user routes also require the owner's login token. User and booking
+   lists return only the logged-in user's records. See
+   [the security audit and access instructions](SECURITY_AUDIT.md).
    Keep all keys in `server/.env` and never commit them to Git.
 
    Start MySQL locally and create a database named `settlein_db`, or update
@@ -141,9 +143,61 @@ are running.
 
 ### Backend access
 
-The API endpoints are publicly callable without authentication while the app is
-in development mode. They match the OpenAPI contract in
-[`openapi.yaml`](./openapi.yaml).
+Every API request must send `X-API-Key: <your-api-key>`. Configure accepted keys
+in `API_KEYS` in your local `server/.env`; never commit or put real keys in this
+README or frontend code. The contract is in [`openapi.yaml`](./openapi.yaml).
+
+A valid request (replace the placeholder locally):
+
+```powershell
+curl.exe -i -H "X-API-Key: <your-api-key>" "http://localhost:5000/health"
+```
+
+Expected success:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{"status":"ok","timestamp":"2026-10-27T09:00:00.000Z"}
+```
+
+The timestamp changes on each request. A missing, invalid, or revoked API key
+returns:
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json; charset=utf-8
+
+{"message":"Missing or invalid API key"}
+```
+
+The rate limit is **3 requests per API key per 15 minutes**, shared across routes.
+The window starts with the first authenticated request. The fourth request
+within that window returns:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json; charset=utf-8
+Retry-After: 900
+
+{"message":"Too many requests, please try again later."}
+```
+
+`Retry-After` is the number of seconds remaining; `900` is an example immediately
+after the window starts. Authenticated requests that later return errors also
+count. Missing/invalid keys are rejected before this limiter. Counters reset on
+server restart. This strict threshold demonstrates throttling during development;
+it is not a measured production allowance. See the rationale and limitations in
+[`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
+
+For private user/booking routes, log in at `POST /api/v1/users/login` with your
+API key, email, and password. Send the returned one-hour token as
+`Authorization: Bearer <your-login-token>` alongside `X-API-Key`. Only the
+logged-in user's records are accessible. A missing/expired login token returns
+`401` with `{"error":"User login required"}`; another user's ID returns `403`.
+No separate admin key is required. Property writes and group inquiries currently
+accept any valid consumer key.
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -163,13 +217,15 @@ in development mode. They match the OpenAPI contract in
 
 ### API documentation
 
-Once the server is running, open **[http://localhost:5000/docs](http://localhost:5000/docs)**
-to browse the full interactive API reference (rendered by Redoc). The public
+The `/docs` and `/openapi.yaml` routes also require `X-API-Key` and count toward
+the limit. A normal browser address-bar navigation cannot attach this header.
+Fetch the HTML with your key, then open the saved file, or open the committed
+[`docs/index.html`](./docs/index.html) directly. The public
 documentation URL is
 [https://displease-startling-throwing.ngrok-free.dev/docs](https://displease-startling-throwing.ngrok-free.dev/docs).
 
-The rendered documentation is also committed as a standalone HTML file, so it
-can be opened without running the frontend, backend, or MySQL:
+The rendered documentation can be opened without running the frontend, backend,
+or MySQL:
 
 - Open [`docs/index.html`](./docs/index.html) directly from the cloned
   repository.
@@ -179,10 +235,14 @@ can be opened without running the frontend, backend, or MySQL:
 The standalone page contains the rendered OpenAPI contract. The interactive
 "Try it" requests still require a reachable API server.
 
+The page embeds the contract and loads the Redoc renderer from its CDN, so
+internet access is needed to render it. After editing `openapi.yaml`, regenerate
+the page from `server` with `npm run docs:build`.
+
 You can also fetch the raw contract:
 
 ```bash
-curl https://displease-startling-throwing.ngrok-free.dev/openapi.yaml
+curl.exe -H "X-API-Key: <your-api-key>" "http://localhost:5000/openapi.yaml"
 ```
 
 ### Partner tests (Part C — Shamba Direct)
@@ -196,11 +256,17 @@ $env:SHAMBA_API_URL="https://their-api-url.example.com"
 npm test -- shamba_direct --runInBand
 ```
 
-To run just our own endpoint tests (no upstream dependency):
+To run the Week 7 contract tests and API-key tests (database fixtures are mocked;
+the real Express routes, authentication, and rate limiter run):
 
 ```powershell
-npm test -- --runInBand --forceExit
+npm test -- users.test.js properties.test.js partner_access.test.js auth.test.js
 ```
+
+Each test gets a fresh app and test-only key, so the 3-request limit does not
+leak between tests. These tests do not prove connectivity to a live MySQL server.
+Run `npm test` for all tests; Shamba Direct tests are skipped unless
+`SHAMBA_API_URL` is configured.
 
 ---
 

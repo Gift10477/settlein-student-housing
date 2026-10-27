@@ -1,3 +1,6 @@
+const safeLog = require('../safeLog');
+const { requireUser, requireOwner, issueSession, revokeUserSessions } = require('../middleware/access');
+const { allowFields } = require('../middleware/fields');
 const express = require('express');
 const crypto = require('crypto');
 const { promisify } = require('util');
@@ -35,8 +38,9 @@ async function verifyPassword(password, storedHash) {
 }
 
 function publicUser(user) {
-  const { password_hash, password, ...safeUser } = user;
-  return safeUser;
+  return { id: user.id, name: user.name, email: user.email, student_id: user.student_id,
+    course: user.course, campus: user.campus, residence_area: user.residence_area,
+    phone: user.phone, role: user.role, created_at: user.created_at };
 }
 
 function badRequest(res, message) {
@@ -148,18 +152,18 @@ function resolveResidenceProximity(residenceArea, preferredCampus) {
 }
 
 // 1. GET all users
-router.get('/', async (req, res) => {
+router.get('/', requireUser, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM users ORDER BY id DESC');
-    res.json(rows);
+    const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [req.userId]);
+    res.json(rows.map(publicUser));
   } catch (err) {
-    console.error('SELECT users error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch users from database' });
   }
 });
 
 // 2. GET /api/v1/users/:id/residence-area (OpenAPI Contract Endpoint 1)
-router.get('/:id/residence-area', async (req, res) => {
+router.get('/:id/residence-area', requireOwner((req) => req.params.id), async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await db.query('SELECT id, name, campus, residence_area FROM users WHERE id = ?', [id]);
@@ -195,7 +199,7 @@ router.get('/:id/residence-area', async (req, res) => {
       cached_at: new Date().toISOString()
     });
   } catch (err) {
-    console.error('GET residence-area error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'An unexpected error occurred while querying student residence data.',
@@ -206,7 +210,7 @@ router.get('/:id/residence-area', async (req, res) => {
 });
 
 // 3. GET /api/v1/users/:id/lease-timeline (OpenAPI Contract Endpoint 3)
-router.get('/:id/lease-timeline', async (req, res) => {
+router.get('/:id/lease-timeline', requireOwner((req) => req.params.id), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -229,7 +233,7 @@ router.get('/:id/lease-timeline', async (req, res) => {
       const [bRows] = await db.query('SELECT * FROM bookings WHERE user_id = ? ORDER BY id DESC LIMIT 1', [id]);
       bookingRows = bRows;
     } catch (bErr) {
-      console.warn('Bookings table query warning:', bErr.message);
+      safeLog('Database operation failed');
     }
 
     if (!bookingRows || bookingRows.length === 0) {
@@ -267,7 +271,7 @@ router.get('/:id/lease-timeline', async (req, res) => {
       booked_at: booking.created_at ? new Date(booking.created_at).toISOString() : new Date().toISOString()
     });
   } catch (err) {
-    console.error('GET lease-timeline error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Database failure when querying lease timeline.',
@@ -278,7 +282,7 @@ router.get('/:id/lease-timeline', async (req, res) => {
 });
 
 // 4. GET /api/v1/users/:id/public-profile (OpenAPI Contract Endpoint 4)
-router.get('/:id/public-profile', async (req, res) => {
+router.get('/:id/public-profile', requireOwner((req) => req.params.id), async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
@@ -298,18 +302,18 @@ router.get('/:id/public-profile', async (req, res) => {
     res.json({
       status_code: 200,
       user_id: Number(user.id),
-      student_id: user.student_id || user.student_id_number || '193923',
+      student_id: user.student_id || null,
       display_name: user.name,
       university_affiliation: 'Strathmore University',
       campus_branch: proximity.nearest_campus,
       course_of_study: user.course || 'Bachelor of Business Information Technology (BBIT)',
-      year_of_study: 3,
-      is_verified_student: true,
+      year_of_study: user.year_of_study || null,
+      is_verified_student: Boolean(user.is_verified_student),
       avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       created_at: user.created_at || new Date().toISOString()
     });
   } catch (err) {
-    console.error('GET public-profile error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to fetch student public profile.',
@@ -320,21 +324,21 @@ router.get('/:id/public-profile', async (req, res) => {
 });
 
 // 5. GET single user by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireOwner((req) => req.params.id), async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json(rows[0]);
+    res.json(publicUser(rows[0]));
   } catch (err) {
-    console.error('SELECT single user error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to fetch user details' });
   }
 });
 
 // 6. INSERT new user
-router.post('/', async (req, res) => {
+router.post('/', allowFields(['name', 'email', 'password', 'student_id', 'course', 'campus', 'residence_area', 'phone', 'role']), async (req, res) => {
   try {
     await ensureAuthColumns();
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
@@ -353,6 +357,7 @@ router.post('/', async (req, res) => {
       return badRequest(res, 'Optional user fields must be non-empty strings when provided.');
     }
 
+    if (role !== undefined && role !== 'student') return badRequest(res, 'New accounts must use the student role.');
     let result;
     try {
       const sql = `
@@ -368,7 +373,7 @@ router.post('/', async (req, res) => {
         campus || 'strathmore',
         residence_area || '',
         phone || '',
-        role || 'student'
+        'student'
       ];
       [result] = await db.query(sql, values);
     } catch (colErr) {
@@ -385,7 +390,7 @@ router.post('/', async (req, res) => {
         campus || 'strathmore',
         residence_area || '',
         phone || '',
-        role || 'student'
+        'student'
       ];
       [result] = await db.query(sqlFallback, valuesFallback);
     }
@@ -396,7 +401,7 @@ router.post('/', async (req, res) => {
       user_id: result.insertId
     });
   } catch (err) {
-    console.error('INSERT user error:', err);
+    safeLog('Database operation failed');
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'A user with this email already exists' });
     }
@@ -405,7 +410,7 @@ router.post('/', async (req, res) => {
 });
 
 // 7. POST login
-router.post('/login', async (req, res) => {
+router.post('/login', allowFields(['email', 'password']), async (req, res) => {
   try {
     await ensureAuthColumns();
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
@@ -428,23 +433,26 @@ router.post('/login', async (req, res) => {
     res.json({
       status_code: 200,
       message: 'Signed in successfully!',
-      user
+      user,
+      access_token: issueSession(rows[0].id, req.apiKey),
+      token_type: 'Bearer',
+      expires_in: 3600
     });
   } catch (err) {
-    console.error('Login error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Login failed due to a database error' });
   }
 });
 
 // 8. PUT update user
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireOwner((req) => req.params.id), allowFields(['name', 'email', 'student_id', 'course', 'campus', 'residence_area', 'phone']), async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return badRequest(res, 'Request body must be a JSON object.');
     }
     const { id } = req.params;
-    const { name, email, student_id, course, campus, residence_area, phone, role } = req.body;
-    const updates = { name, email, student_id, course, campus, residence_area, phone, role };
+    const { name, email, student_id, course, campus, residence_area, phone } = req.body;
+    const updates = { name, email, student_id, course, campus, residence_area, phone };
 
     if (!Object.values(updates).some((value) => value !== undefined)) {
       return badRequest(res, 'At least one user field must be provided for update.');
@@ -464,7 +472,7 @@ router.put('/:id', async (req, res) => {
         campus = COALESCE(?, campus),
         residence_area = COALESCE(?, residence_area),
         phone = COALESCE(?, phone),
-        role = COALESCE(?, role)
+        student_id = COALESCE(?, student_id)
       WHERE id = ?
     `;
 
@@ -475,7 +483,7 @@ router.put('/:id', async (req, res) => {
       campus !== undefined ? campus : null,
       residence_area !== undefined ? residence_area : null,
       phone !== undefined ? phone : null,
-      role !== undefined ? role : null,
+      student_id !== undefined ? student_id : null,
       id
     ];
 
@@ -487,22 +495,23 @@ router.put('/:id', async (req, res) => {
 
     res.json({ status_code: 200, message: 'User updated successfully in database' });
   } catch (err) {
-    console.error('UPDATE user error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to update user in database' });
   }
 });
 
 // 9. DELETE user
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireOwner((req) => req.params.id), async (req, res) => {
   try {
     const { id } = req.params;
     const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
+    revokeUserSessions(id);
     res.json({ message: 'User deleted successfully from database' });
   } catch (err) {
-    console.error('DELETE user error:', err);
+    safeLog('Database operation failed');
     res.status(500).json({ error: 'Failed to delete user from database' });
   }
 });
