@@ -96,6 +96,12 @@ Make sure you have the following installed on your machine:
    Copy-Item .env.example .env
    ```
 
+   Update `server/.env` with your local MySQL connection details and a set of
+   distinct API keys for each consumer. The project expects keys such as
+   `STUDENT_APP_API_KEY`, `LANDLORD_APP_API_KEY`, `STUDYSYNC_API_KEY`, and
+   `ADMIN_API_KEY` to be present before protected endpoints are allowed.
+   Keep all keys in `server/.env` and never commit them to Git.
+
    Start MySQL locally and create a database named `settlein_db`, or update
    `server/.env` with the connection details for an existing MySQL database.
    Then create the tables and sample data by importing

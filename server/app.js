@@ -7,12 +7,65 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const allowedPublicPaths = ['/', '/health', '/healthz', '/docs', '/openapi.yaml'];
+const apiHeaderName = process.env.API_KEY_HEADER || 'X-API-Key';
+const apiKeys = new Set([
+  process.env.STUDENT_APP_API_KEY,
+  process.env.LANDLORD_APP_API_KEY,
+  process.env.STUDYSYNC_API_KEY,
+  process.env.ADMIN_API_KEY
+].filter(Boolean));
+
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const isPublicPath = allowedPublicPaths.includes(req.path) || req.path.startsWith('/docs/') || req.path === '/openapi.yaml';
+
+  if (isPublicPath || process.env.API_KEY_REQUIRED !== 'true') {
+    return next();
+  }
+
+  const providedKey = req.get(apiHeaderName) || req.get('Authorization')?.replace(/^Bearer\s+/i, '');
+
+  if (!providedKey) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: `Missing API key. Send it in the ${apiHeaderName} header.`,
+      status_code: 401,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!apiKeys.has(providedKey)) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid API key.',
+      status_code: 401,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  return next();
+});
 
 // API health check
 app.get('/', (req, res) => {
   res.send('SettleIn Student Housing API (XAMPP MySQL) is running');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/healthz', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Serve browsable API documentation and raw OpenAPI contract
