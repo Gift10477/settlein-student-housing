@@ -16,6 +16,7 @@
  *   currentUser — current authenticated user object
  */
 import React, { useState, useEffect } from 'react';
+import FoodCostWidget from './FoodCostWidget';
 import { getPropertyById, createBooking, getStudentLeaseTimeline, getCurrentUser } from '../../services/api';
 
 /** Render N filled stars + empty remainder */
@@ -245,6 +246,8 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
              </span>
            </div>
         </div>
+
+        <FoodCostWidget key={property.id} rent={property.price} propertyCounty={property.county} location={property.location} />
 
         {/* Amenities */}
         <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Amenities</h3>

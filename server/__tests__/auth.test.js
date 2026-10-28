@@ -43,11 +43,11 @@ describe('API key authentication', () => {
     expect(response.body.accommodation_id).toBe('prop-002');
   });
 
-  it('returns 429 on the fourth request and permits requests after the window', async () => {
+  it('returns 429 on request 101 and permits requests after the window', async () => {
     const now = Date.now();
     const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
     try {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 100; i++) {
         expect((await request(app).get('/health').set('X-API-Key', key)).status).toBe(200);
       }
       const blocked = await request(app).get('/health').set('X-API-Key', key);

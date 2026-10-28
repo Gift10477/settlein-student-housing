@@ -68,7 +68,7 @@ test('a revoked key is rejected even when configured', async () => {
   expect(res.status).toBe(401);
 });
 test('rate-limit responses contain only the fixed message and retry header', async () => {
-  for (let index = 0; index < 3; index++) expect((await call('get', '/health')).status).toBe(200);
+  for (let index = 0; index < 100; index++) expect((await call('get', '/health')).status).toBe(200);
   const res = await call('get', '/health');
   expect(res.status).toBe(429);
   expect(res.headers['retry-after']).toBeDefined();

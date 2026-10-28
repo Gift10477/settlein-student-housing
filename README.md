@@ -172,8 +172,8 @@ Content-Type: application/json; charset=utf-8
 {"message":"Missing or invalid API key"}
 ```
 
-The rate limit is **3 requests per API key per 15 minutes**, shared across routes.
-The window starts with the first authenticated request. The fourth request
+The rate limit is **100 requests per API key per 15 minutes**, shared across routes.
+The window starts with the first authenticated request. Request 101
 within that window returns:
 
 ```http
@@ -214,6 +214,68 @@ accept any valid consumer key.
 | `/api/v1/properties/{id}` | DELETE | Delete a property listing |
 | `/api/v1/properties/group-inquiries` | POST | Submit a shared-housing co-living inquiry |
 | `/api/v1/bookings` | POST | Create a property booking and calculate lease dates |
+| `/api/v1/market-prices` | GET | Read partner market prices for a monthly food-cost estimate |
+
+### Shamba food and living cost widget
+
+Accommodation detail pages include an editable monthly food basket. Each crop's
+monthly cost is `price_per_kg × kilograms entered`; the total adds monthly rent
+and any other monthly costs entered by the student. Quantities start empty so no
+diet or budget is invented. Deposits, booking fees, delivery charges, and expenses
+not entered are excluded. Changing the market county clears the food basket.
+
+The area filter shows only prices from the selected county, so the estimate
+never combines different counties by default. It preselects an explicitly known
+property county, or an exact county component in an address such as
+`Madaraka, Nairobi`. Otherwise the student chooses the county. It does not guess
+an estate's county from its name. Unknown-county prices are excluded from local
+estimates; missing prices for an area show a message instead of another area's
+prices. Equivalent case/whitespace and a trailing `County` label are normalized.
+
+The browser requests `/api/market-prices`; SettleIn calls Shamba on the server and
+returns only crop name, price per kg, county, and retrieval metadata. There is no
+sample-price fallback. Missing configuration, an empty result, or a partner
+failure produces a clear widget message without hiding accommodation details.
+
+See [WEEK10_GUIDE.md](WEEK10_GUIDE.md) for the handout checklist,
+exact URL/key activation steps, failure/recovery checks, debugging,
+downstream support, and submission steps. Record actual results in
+[INTEGRATION_LOG.md](INTEGRATION_LOG.md); live results remain pending.
+
+Configure locally in `server/.env` (never commit actual keys):
+
+```env
+SHAMBA_API_URL=https://<partner-host>/api
+SHAMBA_API_KEY=
+SHAMBA_API_KEY_HEADER=X-API-Key
+SHAMBA_API_KEY_PREFIX=
+SETTLEIN_WEB_API_KEY=<your-api-key>
+```
+
+The partner URL may include or omit its final `/api`. The latest saved Shamba
+contract allows unauthenticated reads, so leave `SHAMBA_API_KEY` empty unless
+Team 14 enables `X-API-Key`; any configured key stays on the backend. Numeric
+`price_per_kg` is treated as KES per the needs statement. Confirm currency and
+the live base URL with Team 14 before claiming live integration works. A county
+may be missing; the widget labels it as unspecified. No live call was verified.
+If Team 14 specifies a different key header or a Bearer prefix, the two optional
+auth settings above allow that change without editing the request code.
+
+Start the backend and Vite frontend as usual. Vite's server/preview proxy forwards
+`/api` to the backend and injects `SETTLEIN_WEB_API_KEY` from the server environment
+(or the first configured `API_KEYS` value if omitted). Neither key is exposed via
+`VITE_*` or bundled into JavaScript. Restart Vite and the backend after changing
+configuration. The same 100-request per 15-minute quota still applies to this key.
+
+This proxy is for local development/preview. A production deployment must provide
+its own same-origin server gateway for `/api`; static hosting alone does not run
+the Vite proxy. Do not expose a general credential-injecting gateway publicly
+without appropriate user/session authorization for its write routes.
+
+Automated integration tests stub the partner's response and cover successful
+prices, malformed data, partner HTTP failures, missing configuration, failure and
+recovery. These are not evidence of a live Shamba call. Week 10 still requires a
+live data/down/recovery demo and a log of the actual results.
 
 ### API documentation
 
@@ -263,7 +325,7 @@ the real Express routes, authentication, and rate limiter run):
 npm test -- users.test.js properties.test.js partner_access.test.js auth.test.js
 ```
 
-Each test gets a fresh app and test-only key, so the 3-request limit does not
+Each test gets a fresh app and test-only key, so the 100-request limit does not
 leak between tests. These tests do not prove connectivity to a live MySQL server.
 Run `npm test` for all tests; Shamba Direct tests are skipped unless
 `SHAMBA_API_URL` is configured.

@@ -1,5 +1,27 @@
 # API Needs Statements & Partner Integration Specification
 
+## Week 10 selected upstream integration
+
+**SettleIn needs to read a list of current market commodity prices per kg,
+including crop name and price in KES, in order to display an estimated monthly
+food and living cost widget on student accommodation detail pages.**
+
+- Provider: Shamba Direct / Team 14, `GET /api/market-prices` with optional county.
+- SettleIn gateway: `GET /api/market-prices` and `/api/v1/market-prices`.
+- Response fields consumed: `crop_name`, numeric `price_per_kg`, optional/null `county`.
+- Budget calculation: price per kilogram times student-entered monthly kilograms,
+  plus monthly rent and other explicitly entered monthly expenses. No default
+  diet, nutritional completeness, delivery cost, or market proximity is inferred.
+- Partner authentication: current saved contract permits public reads; optional
+  backend-only credentials can be configured if the provider enables them.
+- Freshness: one fetch when the widget opens and a user-triggered reload on error;
+  retrieval time is displayed. No automatic retries, timeouts or caching this week.
+- Status: local implementation and existing automated tests; live URL, KES
+  confirmation, field verification and partner collaboration remain pending.
+- Setup, demo and handout checklist: `WEEK10_GUIDE.md`. Actual evidence:
+  `INTEGRATION_LOG.md`. This selects one Week 10 feature; other upstream needs
+  do not need to be implemented to demonstrate this feature end to end.
+
 **Team / Project:** SettleIn (Team 1) — Student Housing & Accommodation Marketplace  
 **Downstream Consumer Partner:** StudySync (Team 2) — Student Group Collaboration & Study Coordination Platform  
 **Upstream Producer Partner:** Team 14 — Agricultural & Farmer Produce Marketplace  

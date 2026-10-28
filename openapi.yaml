@@ -7,7 +7,7 @@ info:
     residential locations, accommodation study amenities, lease timelines, verified student identities, and
     co-living group inquiries.
 
-    All requests require X-API-Key: <your-api-key>. Limit: 3 authenticated requests per API key per 15
+    All requests require X-API-Key: <your-api-key>. Limit: 100 authenticated requests per API key per 15
     minutes, shared across routes. Private user/booking operations additionally require the owner's one-hour
     bearer login token. No separate admin key is used.
   version: 1.0.0
@@ -755,6 +755,63 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/v1/market-prices:
+    get:
+      summary: Read Shamba market prices for the monthly food basket
+      description: >-
+        Fetches current crop prices through the SettleIn backend; the partner key never reaches the browser.
+        Currency is treated as KES per the needs statement, pending partner confirmation. County identifies
+        the source market and is not inferred from the accommodation address. No automatic retries or caching.
+      operationId: getMarketPrices
+      tags: [Living costs]
+      parameters:
+        - name: county
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '200':
+          description: Public prices and retrieval metadata; an empty prices array is valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [currency, source, fetched_at, prices]
+                properties:
+                  currency: { type: string, enum: [KES] }
+                  source: { type: string, enum: [Shamba Direct] }
+                  fetched_at: { type: string, format: date-time }
+                  prices:
+                    type: array
+                    items:
+                      type: object
+                      required: [crop_name, price_per_kg, county]
+                      properties:
+                        crop_name: { type: string }
+                        price_per_kg: { type: number, minimum: 0 }
+                        county: { type: string, nullable: true }
+        '400':
+          description: Invalid county filter.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          description: Partner is unreachable, returned an error, or returned malformed data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: 'Market prices are unavailable right now. Please try again later.' }
+        '503':
+          description: Partner URL has not been configured.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: 'Market prices are not available yet. Please try again later.' }
 components:
   parameters:
     UserId:
@@ -1786,7 +1843,7 @@ components:
                 status_code: 401
     TooManyRequests:
       description: >-
-        More than 3 authenticated requests with the same API key in a 15-minute fixed window shared across
+        More than 100 authenticated requests with the same API key in a 15-minute fixed window shared across
         routes. Wait for Retry-After seconds. Window begins with the first authenticated request; restarting
         the process clears counters.
       headers:

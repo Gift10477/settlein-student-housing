@@ -1,10 +1,23 @@
 /**
  * api.js — SettleIn API Client & Data Layer
  *
- * Communicates directly with the Express / MySQL backend server at http://localhost:5000/api
+ * Calls the same-origin /api gateway; credentials are injected on the server.
  */
 
-const API_BASE = 'http://localhost:5000/api';
+// Same-origin gateway injects the consumer key on the server, not in browser JS.
+const API_BASE = '/api';
+
+export async function getMarketPrices({ signal } = {}) {
+  const response = await fetch(`${API_BASE}/market-prices`, { signal });
+  if (!response.ok) {
+    const error = new Error(response.status === 429
+      ? 'Too many requests. Please wait before loading prices again.'
+      : 'Market prices are unavailable right now. Please try again later.');
+    error.retryAfter = response.headers.get('Retry-After');
+    throw error;
+  }
+  return response.json();
+}
 
 /* ─────────────────────────────────────────────────────────────
  * 1. PROPERTIES (SELECT, INSERT, UPDATE, DELETE)
@@ -160,7 +173,7 @@ export async function addUser(userData) {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || `HTTP error ${res.status}`);
+      throw new Error(data.message || data.error || `HTTP error ${res.status}`);
     }
     return data;
   } catch (err) {
@@ -349,7 +362,7 @@ export async function loginUser(email, password) {
       message: data.message || 'Signed in successfully!',
       user: data.user,
     };
-  } catch (err) {
+  } catch {
     // If offline, fallback to locally cached user if matching
     const cached = getCurrentUser();
     if (cached && cached.email === email) {

@@ -14,7 +14,7 @@ app.disable('x-powered-by');
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use(express.json());
 app.use(requireApiKey);
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 3 })); // 3 requests per API key per 15 minutes
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requests per API key per 15 minutes
 
 // API health check
 app.get('/', (req, res) => {
@@ -42,6 +42,8 @@ app.get('/openapi.yaml', (req, res) => {
 });
 
 // Mount Routes
+app.use('/api/market-prices', require('./routes/marketPrices'));
+app.use('/api/v1/market-prices', require('./routes/marketPrices'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/v1/properties', require('./routes/properties'));
 app.use('/api/users', require('./routes/user'));

@@ -252,7 +252,8 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                   <input
                     id="su-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a strong password"
+                    placeholder="At least 8 characters"
+                    minLength={8}
                     value={suPassword} onChange={e => setSuPassword(e.target.value)}
                     onFocus={() => setPasswordFocused(true)}
                     onBlur={() => setPasswordFocused(false)}

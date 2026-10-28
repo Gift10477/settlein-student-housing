@@ -1,0 +1,28 @@
+.food-cost { margin: 0 0 2rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border, #cbd5e1); border-radius: 12px; background: var(--bg-input, #f8fafc); color: var(--text-primary); }
+.food-cost__header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.food-cost__header h3 { margin: .3rem 0; font-size: 1.25rem; }
+.food-cost__eyebrow { color: var(--primary, #2563eb); font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.food-cost__badge { border: 1px solid var(--border, #cbd5e1); border-radius: 99px; padding: .35rem .75rem; font-size: .75rem; }
+.food-cost__intro, .food-cost__note, .food-cost__source, .food-cost__controls p { color: var(--text-secondary); line-height: 1.6; }
+.food-cost__intro { margin: .75rem 0 1.25rem; }
+.food-cost__controls { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; margin-bottom: 1rem; }
+.food-cost label { display: grid; gap: .4rem; font-size: .85rem; font-weight: 600; }
+.food-cost input, .food-cost select { padding: .6rem; border: 1px solid var(--border, #cbd5e1); border-radius: 6px; background: var(--bg-card, #fff); color: var(--text-primary); }
+.food-cost input:focus-visible, .food-cost select:focus-visible { outline: 2px solid var(--primary, #2563eb); outline-offset: 2px; }
+.food-cost__controls p { font-size: .8rem; flex: 1; min-width: 180px; margin: 0; }
+.food-cost__area-result { font-size: .85rem; color: var(--text-secondary); margin: .75rem 0; }
+.food-cost__table-wrap { overflow-x: auto; }
+.food-cost__table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.food-cost__table th, .food-cost__table td { text-align: left; padding: .8rem .5rem; border-bottom: 1px solid var(--border, #cbd5e1); }
+.food-cost__table thead th { color: var(--text-secondary); font-size: .75rem; }
+.food-cost__table small { display: block; color: var(--text-secondary); font-weight: 400; margin-top: .2rem; }
+.food-cost__table input { width: 95px; }
+.food-cost__extras { margin: 1.25rem 0; max-width: 420px; }
+.food-cost__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+.food-cost__summary div { padding: 1rem; background: var(--bg-card, #fff); border-radius: 8px; }
+.food-cost__summary dt { font-size: .8rem; color: var(--text-secondary); }
+.food-cost__summary dd { margin: .5rem 0 0; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.food-cost__summary .food-cost__total { border: 1px solid var(--primary, #2563eb); }
+.food-cost__note, .food-cost__source { font-size: .75rem; margin-top: .75rem; }
+.food-cost__message p { margin-bottom: .75rem; }
+@media (max-width: 480px) { .food-cost__summary { grid-template-columns: 1fr; } }

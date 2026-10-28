@@ -64,24 +64,25 @@ need explicit models before broader access can be enabled safely.
 Sessions and rate limits are held in process memory. Sessions expire after one
 hour, are revoked on account deletion, and are lost on restart. Multiple backend
 instances require a shared session and rate-limit store. Use HTTPS outside local
-development. The configured limiter remains 3 requests per key per 15 minutes.
+development. The configured limiter remains 100 requests per key per 15 minutes.
 
 ## Rate limit and rationale
 
-The threshold is **3 authenticated requests per API key in a 15-minute fixed
+The threshold is **100 authenticated requests per API key in a 15-minute fixed
 window**, shared across endpoints and both route aliases. The window starts
-with that key's first authenticated request. The fourth request returns `429`
+with that key's first authenticated request. Request 101 returns `429`
 with `{"message":"Too many requests, please try again later."}` and a
 `Retry-After` header containing the remaining seconds. Requests that pass API-key
 authentication count even if a later route returns an error. Missing, invalid,
 and revoked keys return `401` before the limiter and do not consume this quota.
 
-The existing threshold was retained for this development/classroom exercise:
-three successful calls followed by one blocked call make throttling easy to
-demonstrate, and the 15-minute window makes repeated blocking visible. This is
-not based on measured production traffic and is too restrictive for ordinary
-application browsing. A production threshold should be chosen from expected
-traffic and load tests. No threshold was changed during this documentation task.
+The original three-request demonstration allowance blocked normal browsing and
+registration because the frontend shares one consumer key across its routes.
+The user increased it to 100 requests per 15 minutes. This retains an observable
+limit while allowing a development/demo flow to make multiple requests. It is
+not based on measured production traffic; production capacity still needs load
+tests and a decision about quotas for each consumer. The Week 10 preparation
+aligned documentation/tests with this existing change; it did not remove limits.
 
 The counter is per process and resets on restart. Multiple instances need a
 shared counter store. Invalid-key attempts need a separate IP-based limit if
@@ -131,7 +132,7 @@ A missing record is tested with an otherwise valid owner session; accessing
 another user's ID is separately tested to return `403`.
 
 Added tests confirm a documented property route returns `401` without a key
-and `200` with a valid key. An additional test confirms the fourth request gets
+and `200` with a valid key. An additional test confirms request 101 gets
 `429`, checks `Retry-After: 900` at the window start, and advances the test clock
 to verify that access resumes after 15 minutes. The updated Week 7/auth suite
 passes **19 tests across four suites**.
