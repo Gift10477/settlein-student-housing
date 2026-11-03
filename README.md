@@ -232,16 +232,36 @@ accept any valid consumer key.
 
 ### Shamba food and living cost widget
 
+Budget planning is optional: property details show a compact invitation card.
+The planner opens only when the student selects "Plan my monthly budget".
+Travel, everyday expenses and move-in charges use expandable sections; hiding
+the planner preserves entries while the student remains on the same property.
+Partner price fetching starts when the planner is first opened.
+
+The property detail calculator also provides editable SettleIn mock transport
+fares for 19 areas and all four university destinations. Transport is a
+one-way fare multiplied by two trips and the student's chosen monthly campus
+travel days. The university selected in housing search carries into the
+calculator; branch assumptions are shown and fares can be overridden.
+Other editable monthly allowances cover utilities, cooking fuel, phone/data,
+toiletries, laundry, study costs, additional groceries, healthcare, leisure,
+contingency and other expenses. Water, Wi-Fi and garbage explicitly included
+in rent add zero extra cost. Blank required inputs leave the total incomplete.
+These mock allowances are separate from Shamba data and change no partner
+schema. Deposit and booking charges are shown separately from monthly costs.
+This calculator compares its total with an entered budget; listing search
+still filters by rent rather than the calculated living total.
+
 Accommodation detail pages include an editable monthly food basket. Each crop's
 monthly cost is `price_per_kg × kilograms entered`; the total adds monthly rent
 and any other monthly costs entered by the student. Quantities start empty so no
 diet or budget is invented. Deposits, booking fees, delivery charges, and expenses
 not entered are excluded. Changing the market county clears the food basket.
 
-The area filter shows only prices from the selected county, so the estimate
+The fixed property county shows only prices from that county, so the estimate
 never combines different counties by default. It preselects an explicitly known
 property county, or an exact county component in an address such as
-`Madaraka, Nairobi`. Otherwise the student chooses the county. It does not guess
+`Madaraka, Nairobi`. Otherwise the estimate remains unavailable until the property location is corrected. It does not guess
 an estate's county from its name. Unknown-county prices are excluded from local
 estimates; missing prices for an area show a message instead of another area's
 prices. Equivalent case/whitespace and a trailing `County` label are normalized.

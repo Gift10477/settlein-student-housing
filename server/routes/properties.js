@@ -6,6 +6,9 @@ const router = express.Router();
 const db = require('../db');
 
 const propertyOptionalColumns = {
+  county: 'VARCHAR(100) NULL',
+  gender_policy: 'VARCHAR(100) NULL',
+  furnishing_status: 'VARCHAR(100) NULL',
   wifi_rating: 'DECIMAL(2,1) NULL',
   wifi_speed_mbps: 'INT NULL',
   has_dedicated_desk: 'TINYINT(1) NULL',
@@ -80,6 +83,7 @@ function formatProperty(p) {
   }
 
   return {
+    county: p.county || null,
     ...Object.fromEntries(['id', 'title', 'type', 'price', 'location', 'campus', 'distance', 'verified', 'image', 'description', 'landlord', 'phone', 'whatsapp', 'vacant_units', 'latitude', 'longitude', 'security_deposit', 'booking_fee', 'water_included', 'wifi_included', 'garbage_included', 'gender_policy', 'furnishing_status', 'wifi_rating', 'wifi_speed_mbps', 'has_dedicated_desk', 'has_backup_generator', 'quiet_hours_start', 'quiet_hours_end', 'quiet_hours_policy_enforced', 'max_study_guests', 'last_inspected_at', 'created_at'].map((field) => [field, p[field]])),
     price: Number(p.price) || 0,
     vacant_units: p.vacant_units !== undefined ? Number(p.vacant_units) : 1,
@@ -469,6 +473,8 @@ router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'd
     if (!finiteNumber(price) || price < 0) return propertyBadRequest(res, "Field 'price' is required and must be a non-negative number.");
     if (!nonEmptyString(location)) return propertyBadRequest(res, "Field 'location' is required and must be a non-empty string.");
     if (!nonEmptyString(campus)) return propertyBadRequest(res, "Field 'campus' is required and must be a non-empty string.");
+    if (gender_policy != null && gender_policy !== '' && !['Mixed', 'Female-only', 'Male-only'].includes(gender_policy)) return propertyBadRequest(res, 'Invalid gender policy.');
+    if (furnishing_status != null && furnishing_status !== '' && !['Furnished', 'Unfurnished', 'Semi-furnished'].includes(furnishing_status)) return propertyBadRequest(res, 'Invalid furnishing status.');
     if (distance !== undefined && !nonEmptyString(distance)) return propertyBadRequest(res, "Field 'distance' must be a non-empty string when provided.");
     if (vacant_units !== undefined && (!Number.isInteger(vacant_units) || vacant_units < 0)) {
       return propertyBadRequest(res, "Field 'vacant_units' must be a non-negative integer.");
@@ -518,8 +524,8 @@ router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'd
         vacant_units, amenities, wifi_rating, wifi_speed_mbps,
         has_dedicated_desk, has_backup_generator, quiet_hours_start,
         quiet_hours_end, quiet_hours_policy_enforced, max_study_guests,
-        last_inspected_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        last_inspected_at, gender_policy, furnishing_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const amenitiesStr = Array.isArray(amenities)
@@ -550,7 +556,9 @@ router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'd
       quiet_hours_end || '06:00',
       quiet_hours_policy_enforced !== undefined ? Boolean(quiet_hours_policy_enforced) : true,
       max_study_guests !== undefined ? Number(max_study_guests) : 4,
-      last_inspected_at || new Date()
+      last_inspected_at || new Date(),
+      gender_policy || null,
+      furnishing_status || null
     ];
 
     await db.query(sql, values);
@@ -560,6 +568,8 @@ router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'd
       message: 'Property inserted successfully into database',
       id: id,
       property: {
+        gender_policy: gender_policy || null,
+        furnishing_status: furnishing_status || null,
         id,
         title,
         type: type || 'Bedsitter',
@@ -593,7 +603,7 @@ router.post('/', allowFields(['title', 'type', 'price', 'location', 'campus', 'd
 });
 
 // 6. UPDATE (Update an existing property)
-router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 'vacant_units', 'description']), async (req, res) => {
+router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 'vacant_units', 'description', 'gender_policy']), async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return propertyBadRequest(res, 'Request body must be a JSON object.');
@@ -609,7 +619,9 @@ router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 
       description
     } = req.body;
 
-    const updates = { title, type, price, location, campus, vacant_units, description };
+    const { gender_policy } = req.body;
+    if (gender_policy !== undefined && gender_policy !== null && !['', 'Mixed', 'Female-only', 'Male-only'].includes(gender_policy)) return propertyBadRequest(res, 'Invalid gender policy.');
+    const updates = { title, type, price, location, campus, vacant_units, description, gender_policy };
     if (!Object.values(updates).some((value) => value !== undefined)) {
       return propertyBadRequest(res, 'At least one property field must be provided for update.');
     }
@@ -632,7 +644,8 @@ router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 
         location = COALESCE(?, location),
         campus = COALESCE(?, campus),
         vacant_units = COALESCE(?, vacant_units),
-        description = COALESCE(?, description)
+        description = COALESCE(?, description),
+        gender_policy = CASE WHEN ? THEN ? ELSE gender_policy END
       WHERE id = ?
     `;
 
@@ -644,6 +657,8 @@ router.put('/:id', allowFields(['title', 'type', 'price', 'location', 'campus', 
       campus !== undefined ? campus : null,
       vacant_units !== undefined ? Number(vacant_units) : null,
       description !== undefined ? description : null,
+      gender_policy !== undefined,
+      gender_policy || null,
       id
     ];
 

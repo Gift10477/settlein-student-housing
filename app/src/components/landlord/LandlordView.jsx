@@ -20,11 +20,22 @@ export default function LandlordView({ onToast }) {
     title: '', type: 'Bedsitter', price: '',
     location: '', campus: 'strathmore',
     description: '', phone: '', amenities: '',
+    gender_policy: '', furnishing_status: '',
   });
 
   /** Manage properties state */
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [savingPolicy, setSavingPolicy] = useState(null);
+  const saveGenderPolicy = async (property, policy) => {
+    setSavingPolicy(property.id);
+    try {
+      await updateProperty(property.id, { gender_policy: policy });
+      setProperties(previous => previous.map(p => p.id === property.id ? { ...p, gender_policy: policy || null } : p));
+      onToast('Gender policy updated.');
+    } catch (error) { onToast(`Could not update gender policy: ${error.message}`); }
+    finally { setSavingPolicy(null); }
+  };
 
   /** Load properties from database */
   const fetchList = () => {
@@ -62,7 +73,7 @@ export default function LandlordView({ onToast }) {
       await addProperty(payload);
       onToast('Listing inserted into MySQL database successfully!');
       // Reset form
-      setForm({ title: '', type: 'Bedsitter', price: '', location: '', campus: 'strathmore', description: '', phone: '', amenities: '' });
+      setForm({ title: '', type: 'Bedsitter', price: '', location: '', campus: 'strathmore', description: '', phone: '', amenities: '', gender_policy: '', furnishing_status: '' });
     } catch (err) {
       console.error(err);
       onToast(`Failed to insert listing into database: ${err.message}`);
@@ -158,6 +169,18 @@ export default function LandlordView({ onToast }) {
 
                 {/* Phone */}
                 <div className="form-group">
+                  <label htmlFor="ll-gender">Gender policy</label>
+                  <select id="ll-gender" value={form.gender_policy} onChange={set('gender_policy')}>
+                    <option value="">Not specified</option><option>Mixed</option><option>Female-only</option><option>Male-only</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="ll-furnishing">Furnishing</label>
+                  <select id="ll-furnishing" value={form.furnishing_status} onChange={set('furnishing_status')}>
+                    <option value="">Not specified</option><option>Furnished</option><option>Unfurnished</option><option>Semi-furnished</option>
+                  </select>
+                </div>
+                <div className="form-group">
                   <label htmlFor="ll-phone">Contact Phone</label>
                   <input id="ll-phone" type="tel" placeholder="+254 7XX XXX XXX" value={form.phone} onChange={set('phone')} required />
                 </div>
@@ -207,6 +230,12 @@ export default function LandlordView({ onToast }) {
                   >
                     <div>
                       <h4 style={{ margin: 0, fontSize: '1.05rem' }}>{p.title}</h4>
+                      <label style={{ display: 'grid', gap: '.35rem', margin: '.5rem 0' }}>
+                        Gender policy
+                        <select value={p.gender_policy || ''} disabled={savingPolicy !== null} onChange={e => saveGenderPolicy(p, e.target.value)}>
+                          <option value="">Not specified</option><option>Mixed</option><option>Female-only</option><option>Male-only</option>
+                        </select>
+                      </label>
                       <p style={{ margin: '0.2rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                         {p.location} • {p.type} • <strong>KES {Number(p.price).toLocaleString()} / mo</strong>
                       </p>

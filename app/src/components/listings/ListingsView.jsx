@@ -17,14 +17,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import FilterSidebar from './FilterSidebar';
 import PropertyCard from './PropertyCard';
 import { getProperties } from '../../services/api';
+import { matchesAmenities, searchAmenities } from '../../lib/amenityFilters';
+import { matchesPropertyOptions } from '../../lib/propertyFilters';
 
 /** Default empty filter state */
 const DEFAULT_FILTERS = {
   campus: 'all', type: 'all', maxPrice: 25000,
   amenities: [], verified: false, search: '',
+  gender_policy: 'all', furnishing_status: 'all',
 };
 
-export default function ListingsView({ initialCampus = 'all', onView, onToast }) {
+export default function ListingsView({ initialCampus = 'all', onView, onToast, onCampusChange }) {
   const [filters,  setFilters]  = useState({ ...DEFAULT_FILTERS, campus: initialCampus });
   const [sortBy,   setSortBy]   = useState('price-asc');
   const [rawProps, setRawProps] = useState([]);
@@ -56,21 +59,21 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
     if (filters.campus && filters.campus !== 'all') {
       list = list.filter(p => p.campus === filters.campus);
     }
-    if (filters.type && filters.type !== 'all') {
-      list = list.filter(p => p.type === filters.type);
-    }
+    list = list.filter(p => matchesPropertyOptions(p, filters));
     if (filters.maxPrice) {
       list = list.filter(p => (Number(p.price) || 0) <= Number(filters.maxPrice));
     }
     if (filters.verified) {
       list = list.filter(p => Boolean(p.verified));
     }
+    list = list.filter(p => matchesAmenities(p, filters.amenities));
     if (filters.search) {
-      const q = filters.search.toLowerCase();
+      const q = filters.search.trim().toLowerCase();
       list = list.filter(p =>
         (p.title && p.title.toLowerCase().includes(q)) ||
         (p.location && p.location.toLowerCase().includes(q)) ||
-        (p.type && p.type.toLowerCase().includes(q))
+        (p.type && p.type.toLowerCase().includes(q)) ||
+        searchAmenities(p, q)
       );
     }
     return list.sort((a, b) => {
@@ -100,7 +103,7 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
             </svg>
             <input
               type="search"
-              placeholder="Search by name, area, or type…"
+              placeholder="Search by name, area, type or amenity…"
               value={filters.search}
               onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
               aria-label="Search listings"
@@ -116,9 +119,9 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
           {/* Filter sidebar */}
           <FilterSidebar
             filters={filters}
-            onChange={setFilters}
+            onChange={(next) => { setFilters(next); onCampusChange?.(next.campus); }}
             onApply={() => {}} /* filters are live — no need for explicit apply */
-            onClear={() => setFilters({ ...DEFAULT_FILTERS })}
+            onClear={() => { setFilters({ ...DEFAULT_FILTERS }); onCampusChange?.('all'); }}
           />
 
           {/* Results area */}
@@ -154,6 +157,7 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
             {!loading && displayed.length === 0 && (
               <div className="spinner-wrap">
                 <p>No listings match your filters.</p>
+                {filters.gender_policy !== 'all' && <p>Only properties with a recorded {filters.gender_policy} policy are shown. Try “Any” to include properties with an unspecified policy.</p>}
                 <button className="btn" onClick={() => setFilters({ ...DEFAULT_FILTERS })}>
                   Clear Filters
                 </button>

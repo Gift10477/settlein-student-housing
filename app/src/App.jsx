@@ -179,6 +179,7 @@ export default function App() {
         {activeView === 'listings' && (
           <ListingsView
             initialCampus={initialCampus}
+            onCampusChange={setInitialCampus}
             onView={viewDetail}
             onToast={showToast}
           />
@@ -188,6 +189,7 @@ export default function App() {
         {activeView === 'detail' && activePropId && (
           <DetailView
             propId={activePropId}
+            selectedCampus={initialCampus}
             onBack={() => navigate('listings')}
             onToast={showToast}
             currentUser={currentUser}

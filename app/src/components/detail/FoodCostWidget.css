@@ -1,4 +1,24 @@
-.food-cost { margin: 0 0 2rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border, #cbd5e1); border-radius: 12px; background: var(--bg-input, #f8fafc); color: var(--text-primary); }
+.budget-invitation { margin: 0 0 2rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border); border-radius: var(--radius-xl, 16px); background: var(--bg-card); box-shadow: var(--shadow-card); color: var(--text-primary); }
+.budget-invitation__header { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.budget-invitation__icon { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; background: var(--primary-light); color: var(--primary); }
+.budget-invitation__copy { flex: 1; min-width: min(100%, 200px); }
+.budget-invitation__copy h3 { margin: .35rem 0; font-size: 1.25rem; }
+.budget-invitation__copy p, .budget-invitation__optional { color: var(--text-secondary); line-height: 1.6; margin: .3rem 0; font-size: .85rem; }
+.budget-invitation__optional { font-size: .75rem; margin-top: 1rem; }
+.budget-invitation button:focus-visible, .budget-category summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.food-cost { padding-top: 1.5rem; margin-top: 1.25rem; border-top: 1px solid var(--border); color: var(--text-primary); }
+.budget-category { border: 1px solid var(--border); border-radius: var(--radius); margin-top: .75rem; overflow: hidden; }
+.budget-category summary { padding: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--bg-input); font-size: .875rem; }
+.budget-category summary::after { content: '+'; font-size: 1.3rem; color: var(--primary); }
+.budget-category[open] summary::after { content: '−'; }
+.budget-category summary small { display: block; margin-top: .35rem; color: var(--text-secondary); font-weight: normal; font-size: .75rem; }
+.budget-category summary strong { font-size: .8rem; margin-left: auto; color: var(--primary); }
+.budget-category__body { padding: 1rem; }
+.food-cost input[readonly] { background: var(--bg-input); color: var(--text-secondary); }
+.expense-planner { margin: 0 0 1.5rem; padding: 0; border: 0; min-width: 0; }
+.expense-planner legend { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.expense-planner__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.expense-planner input, .expense-planner select { width: 100%; min-width: 0; box-sizing: border-box; }
 .food-cost__header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .food-cost__header h3 { margin: .3rem 0; font-size: 1.25rem; }
 .food-cost__eyebrow { color: var(--primary, #2563eb); font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
@@ -26,3 +46,4 @@
 .food-cost__note, .food-cost__source { font-size: .75rem; margin-top: .75rem; }
 .food-cost__message p { margin-bottom: .75rem; }
 @media (max-width: 480px) { .food-cost__summary { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .budget-invitation__header > .btn { width: 100%; } .budget-category summary { flex-wrap: wrap; } .budget-category summary strong { margin-left: 0; } }

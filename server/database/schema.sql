@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS properties (
   type VARCHAR(100) NOT NULL,
   price INT NOT NULL,
   location VARCHAR(255) NOT NULL,
+  county VARCHAR(100) NULL,
   campus VARCHAR(100) NOT NULL,
   distance VARCHAR(255) DEFAULT 'Near Campus',
   verified TINYINT(1) DEFAULT 1,

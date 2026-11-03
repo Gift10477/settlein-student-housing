@@ -69,6 +69,9 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
           <option value="hostel">Hostel Room</option>
           <option value="shared">Shared Apartment</option>
           <option value="studio">Studio</option>
+          <option value="single-room">Single Room</option>
+          <option value="1-bedroom">1 Bedroom</option>
+          <option value="2-bedroom">2 Bedroom</option>
         </select>
       </div>
 
@@ -85,6 +88,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
           <option value="Female-only">Female-only</option>
           <option value="Male-only">Male-only</option>
         </select>
+        <small style={{ color: 'var(--text-secondary)' }}>Specific policies show only listings with that policy provided.</small>
       </div>
 
       {/* Furnishing Status */}
@@ -98,7 +102,9 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
           <option value="all">Any</option>
           <option value="Furnished">Furnished</option>
           <option value="Unfurnished">Unfurnished</option>
+          <option value="Semi-furnished">Semi-furnished</option>
         </select>
+        <small style={{ color: 'var(--text-secondary)' }}>Listings with unspecified furnishing appear under Any.</small>
       </div>
 
       {/* Max price slider */}
@@ -123,6 +129,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
       {/* Amenity toggles */}
       <div className="filter-group">
         <span className="filter-label">Amenities</span>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Shows properties with all selected amenities.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           {['Wi-Fi', 'CCTV', 'Borehole', 'Parking', 'Gym'].map(amenity => (
             <label

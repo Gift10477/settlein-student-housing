@@ -28,7 +28,7 @@ function StarRating({ value }) {
   );
 }
 
-export default function DetailView({ propId, onBack, onToast, currentUser }) {
+export default function DetailView({ propId, onBack, onToast, currentUser, selectedCampus }) {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -247,7 +247,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
            </div>
         </div>
 
-        <FoodCostWidget key={property.id} rent={property.price} propertyCounty={property.county} location={property.location} />
+        <FoodCostWidget key={property.id} rent={property.price} propertyCounty={property.county} location={property.location} property={property} selectedCampus={selectedCampus && selectedCampus !== 'all' ? selectedCampus : currentUser?.campus || property.campus} />
 
         {/* Amenities */}
         <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Amenities</h3>
@@ -261,15 +261,12 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
         <div style={{ padding: '1.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <h3 style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>
-              🗓️ Book Accommodation & Generate Lease Timeline
+              Book your accommodation
             </h3>
-            <span style={{ fontSize: '0.8rem', background: '#dbeafe', color: '#1e40af', padding: '0.25rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
-              Live Database Integration
-            </span>
           </div>
 
           <p style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '1.25rem' }}>
-            Reserve this room directly. Your move-in date and arrival time will be saved into the MySQL database in real time, making your lease schedule accessible to downstream services (StudySync).
+            Choose your move-in date, arrival time and length of stay to reserve this room.
           </p>
 
           {property.vacant_units === 0 ? (
@@ -311,7 +308,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
-                  Lease Tenancy Duration
+                  Length of stay
                 </label>
                 <select
                   value={leaseDuration}
@@ -357,7 +354,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
                   disabled={isBooking}
                   style={{ padding: '0.65rem 1.5rem', fontWeight: 700, fontSize: '0.95rem' }}
                 >
-                  {isBooking ? 'Recording Booking...' : '✓ Confirm Room Booking'}
+                  {isBooking ? 'Confirming your booking...' : 'Confirm room booking'}
                 </button>
               </div>
             </form>
