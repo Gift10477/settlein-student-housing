@@ -191,6 +191,20 @@ server restart. This strict threshold demonstrates throttling during development
 it is not a measured production allowance. See the rationale and limitations in
 [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
 
+### Monitoring statistics
+
+The protected `/stats` endpoint reports in-memory request statistics. It
+requires the same `X-API-Key` header as the other API endpoints:
+
+```powershell
+curl.exe -H "X-API-Key: <your-api-key>" "http://localhost:5000/stats"
+```
+
+The response includes the server start time, uptime, total requests, 4xx and
+5xx counts, server error rate, average response time, and a per-route
+breakdown containing request counts, average time, and maximum time. Statistics
+reset whenever the server restarts.
+
 For private user/booking routes, log in at `POST /api/v1/users/login` with your
 API key, email, and password. Send the returned one-hour token as
 `Authorization: Bearer <your-login-token>` alongside `X-API-Key`. Only the

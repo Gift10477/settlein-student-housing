@@ -9,12 +9,16 @@ const { rateLimit } = require('./middleware/rateLimit');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const { monitor, statsHandler } = require('./monitoring');
+
+app.use(monitor);
 app.use(cors());
 app.disable('x-powered-by');
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use(express.json());
 app.use(requireApiKey);
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requests per API key per 15 minutes
+app.get('/stats', statsHandler);
 
 // API health check
 app.get('/', (req, res) => {
