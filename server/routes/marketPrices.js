@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { marketRequest } = require('../integrations/shambaRequest');
+const { fetchWithRetry } = require('../resilientFetch');
+
+// In-memory cache for Week 11 Resilience fallback
+let lastGoodData = null;
 
 router.get('/', async (req, res) => {
   const county = req.query.county;
@@ -14,14 +18,12 @@ router.get('/', async (req, res) => {
   }
   try {
     const { url, options } = marketRequest(process.env, county);
-    // Current partner contract permits public reads. A key is optional if
-    // Team 14 enables X-API-Key later. Confirm currency before the live demo.
-    // Never forward redirects
-    // with a credential, or log the partner URL/key/response body.
-    const response = await fetch(url, options);
+
+    // Call upstream partner via resilientFetch with 1500ms timeout and up to 2 retries
+    const response = await fetchWithRetry(url, options, { timeoutMs: 1500, maxRetries: 2 });
     if (!response.ok) {
       console.error('Market price provider returned HTTP', response.status);
-      return res.status(502).json({ message: 'Market prices are unavailable right now. Please try again later.' });
+      throw new Error(`Partner HTTP ${response.status}`);
     }
     const data = await response.json();
     if (!Array.isArray(data) || data.some((row) => !row || typeof row.crop_name !== 'string' ||
@@ -30,18 +32,57 @@ router.get('/', async (req, res) => {
         (row.county !== undefined && row.county !== null && typeof row.county !== 'string'))) {
       throw new Error('Invalid market price response');
     }
+
+    const formattedPrices = data.map((row) => ({
+      crop_name: row.crop_name.trim(),
+      price_per_kg: row.price_per_kg,
+      county: row.county?.trim() || null
+    }));
+
+    const nowIso = new Date().toISOString();
+    lastGoodData = {
+      data: formattedPrices,
+      asof: nowIso
+    };
+
     return res.json({
-      currency: 'KES', source: 'Shamba Direct', fetched_at: new Date().toISOString(),
-      prices: data.map((row) => ({ crop_name: row.crop_name.trim(), price_per_kg: row.price_per_kg, county: row.county?.trim() || null })),
+      data: lastGoodData.data,
+      prices: lastGoodData.data,
+      stale: false,
+      asof: lastGoodData.asof,
+      fetched_at: lastGoodData.asof,
+      currency: 'KES',
+      source: 'Shamba Direct'
     });
   } catch (error) {
-    const code = error.cause?.code;
-    // Only known network codes are safe to log; arbitrary error messages may
-    // include URLs, response data, or credentials.
-    const safeCode = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'EAI_AGAIN'].includes(code) ? code : 'REQUEST_FAILED';
+    const code = error.cause?.code || error.name;
+    const safeCode = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'EAI_AGAIN', 'TimeoutError', 'AbortError'].includes(code)
+      ? code
+      : (error.message || 'REQUEST_FAILED');
     console.error('Market price provider request failed:', safeCode);
+
+    // Fallback: If lastGoodData exists, serve stale cached data
+    if (lastGoodData) {
+      console.warn(`[marketPrices] Upstream failed (${safeCode}); returning stale cached data from ${lastGoodData.asof}`);
+      return res.json({
+        data: lastGoodData.data,
+        prices: lastGoodData.data,
+        stale: true,
+        asof: lastGoodData.asof,
+        fetched_at: lastGoodData.asof,
+        currency: 'KES',
+        source: 'Shamba Direct'
+      });
+    }
+
     return res.status(502).json({ message: 'Market prices are unavailable right now. Please try again later.' });
   }
 });
+
+// Helper for test suites
+router._resetLastGoodData = () => {
+  lastGoodData = null;
+};
+router._getLastGoodData = () => lastGoodData;
 
 module.exports = router;

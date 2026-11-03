@@ -6,6 +6,8 @@
   "scripts": {
     "docs:build": "node scripts/build-docs.cjs",
     "test": "jest --runInBand",
+    "test:resilience": "node scripts/test-resilience.js",
+    "partner": "node flaky-partner.js",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
