@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "preflight": "node scripts/preflight.cjs",
     "docs:build": "node scripts/build-docs.cjs",
     "test": "jest --runInBand",
     "test:resilience": "node scripts/test-resilience.js",

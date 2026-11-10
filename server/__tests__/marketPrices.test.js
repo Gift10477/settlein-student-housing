@@ -13,6 +13,7 @@ beforeEach(() => {
   process.env.SHAMBA_API_KEY = 'partner-test-key';
   process.env.SHAMBA_API_KEY_HEADER = 'X-API-Key';
   process.env.SHAMBA_API_KEY_PREFIX = '';
+  process.env.PARTNER_VERSION = 'v1';
   fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
     ok: true,
     status: 200,
@@ -29,9 +30,27 @@ afterEach(() => {
   delete process.env.SHAMBA_API_KEY;
   delete process.env.SHAMBA_API_KEY_HEADER;
   delete process.env.SHAMBA_API_KEY_PREFIX;
+  delete process.env.PARTNER_VERSION;
 });
 
 const get = (path = '/api/market-prices') => request(app).get(path).set('X-API-Key', key);
+
+test('v2 integration requests the versioned path and serves fresh normalized prices', async () => {
+  process.env.PARTNER_VERSION = 'v2';
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: rows, count: 1 }) });
+  const response = await get('/api/market-prices?county=Nairobi');
+  expect(response.status).toBe(200);
+  expect(response.body.stale).toBe(false);
+  expect(response.body.prices).toEqual([{ crop_name: 'Tomatoes', price_per_kg: 80, county: 'Nairobi' }]);
+  expect(fetchMock.mock.calls[0][0].pathname).toBe('/api/v2/market-prices');
+  expect(fetchMock.mock.calls[0][0].searchParams.get('county')).toBe('Nairobi');
+});
+
+test('upstream exception messages cannot disclose secrets in request logs', async () => {
+  fetchMock.mockResolvedValue({ ok: true, json: async () => { throw new Error('partner-test-key'); } });
+  expect((await get()).status).toBe(502);
+  expect(JSON.stringify(logger.mock.calls)).not.toContain('partner-test-key');
+});
 
 test('supports a partner-confirmed Bearer scheme without changing code', async () => {
   process.env.SHAMBA_API_KEY_HEADER = 'Authorization';

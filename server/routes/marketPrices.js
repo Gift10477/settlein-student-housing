@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
     const code = error.cause?.code || error.name;
     const safeCode = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'EAI_AGAIN', 'TimeoutError', 'AbortError'].includes(code)
       ? code
-      : (error.message || 'REQUEST_FAILED');
+      : 'REQUEST_FAILED';
     console.error('Market price provider request failed:', safeCode);
 
     // Fallback: If lastGoodData exists, serve stale cached data
