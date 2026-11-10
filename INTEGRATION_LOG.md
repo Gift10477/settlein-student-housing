@@ -75,3 +75,29 @@ exception messages after the corrected outage test exposed credential leakage.
 Examples in the handout are not evidence. If a live check works on the first
 attempt, say so; also record deliberate wrong-key, nonexistent-ID (on a route
 that takes an ID), shape and provider-down tests as actually performed.
+
+## Updated Shamba contract verification - 10 November 2026
+
+The supplied Shamba 1.0.0 contract now requires X-API-Key for all /api reads.
+The live tests previously sent no key, assumed record ID 1 and rejected nullable
+listing category/county and headquarters address fields. Tests now load
+server/.env, use SHAMBA_API_KEY, discover current records and accept documented
+optional/null fields. The former enquiry POST was replaced by a missing-key
+read check so the suite uses the read-only ring-partner scope. The documented
+market-price response remains a bare array at /api/market-prices; v2 is not
+documented. Readiness and setup instructions now use that v1 contract.
+
+Initial authenticated GETs to listings, market-prices, farmer ratings and
+headquarters returned 200. Market prices contained 19 entries. Listing ID 1
+was absent; listing 10 identified verified farmer 3. The first corrected live
+run passed 13 of 16 tests. The three nonnumeric-ID checks returned 403 for
+listings, farmer rating and headquarters, where the supplied contract says 400.
+Those assertions remain strict: changing them to accept undocumented responses
+would hide the discrepancy. No partner code was changed or partner contacted.
+
+During the subsequent full run, listing discovery returned 404, failing the
+live suite setup. A separate authenticated read then returned JSON with HTTP
+500. These are partner responses, not evidence of a passing live integration.
+The same complete run passed 132 local tests in 12 suites; all 16 live checks
+failed setup. Recheck partner availability and ask Team 14 to reconcile the
+400/403 contract mismatch before claiming a completely green live run.

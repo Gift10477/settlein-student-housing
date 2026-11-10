@@ -1,9 +1,11 @@
 # Week 10 - connecting SettleIn to Shamba Direct
 
-The food and living cost widget is implemented. The live partner URL, currency
-confirmation, cross-team coordination and final demonstration remain pending.
-Demo servers, preflight scripts and extra request logging have been removed.
-Use the existing tests and ordinary terminal requests below.
+The food and living cost widget is implemented. Authenticated partner reads were
+verified on 10 November 2026; see INTEGRATION_LOG.md for current contract drift
+and availability failures. Currency confirmation, cross-team coordination and
+the final demonstration remain pending. Use the existing tests and terminal
+requests below. `npm run preflight` from `server` checks readiness against the
+current Shamba v1 contract and requires fresh, non-empty prices.
 
 ## 1. Get the partner information
 
@@ -12,8 +14,8 @@ require a key, its exact header/scheme, their rate limit and confirmation that
 prices are KES. Agree on contact people and book your TA check-in.
 
 Their localhost means their own computer. Do not point Shamba's URL at your
-SettleIn backend or Vite server. The latest saved contract permits public reads;
-leave the partner key empty unless they confirm authentication is required.
+SettleIn backend or Vite server. The updated Shamba 1.0.0 contract requires
+`X-API-Key` for `/api` requests. Use Team 14's read-only ring-partner key.
 
 ## 2. Configure server/.env
 
@@ -21,7 +23,7 @@ Preserve the database settings and accepted SettleIn keys. Add/update:
 
 ```env
 SHAMBA_API_URL=https://<partner-host>/api
-SHAMBA_API_KEY=
+SHAMBA_API_KEY=<partner-issued-read-only-key>
 SHAMBA_API_KEY_HEADER=X-API-Key
 SHAMBA_API_KEY_PREFIX=
 SETTLEIN_WEB_API_KEY=<your-api-key>
@@ -31,8 +33,9 @@ SETTLEIN_WEB_API_KEY=<your-api-key>
   it on the server; it is not Shamba's key.
 - `SHAMBA_API_URL` may include or omit the final `/api`. Do not include the
   full `/market-prices` path, credentials, query or fragment.
-- If Shamba requires a plain key, put their issued key in `SHAMBA_API_KEY` and
-  set their confirmed header name. Do not send a SettleIn key to Shamba.
+- Put Shamba's issued key in `SHAMBA_API_KEY` and use `X-API-Key` with an empty
+  prefix. Keep `PARTNER_VERSION=v1` for the supplied contract. Do not send a
+  SettleIn key to Shamba.
 - For a confirmed Bearer scheme, set the header to `Authorization`, prefix to
   `Bearer`, and key to the raw token without adding `Bearer` again.
 - These header arrangements need no request-code changes. Other protocols
@@ -40,13 +43,7 @@ SETTLEIN_WEB_API_KEY=<your-api-key>
 
 ## 3. Make the first terminal call before using the app
 
-For their currently documented public read:
-
-```powershell
-curl.exe -i "https://<partner-host>/api/market-prices"
-```
-
-If they confirm X-API-Key authentication:
+For the currently documented authenticated read:
 
 ```powershell
 curl.exe -i -H "X-API-Key: <partner-issued-key>" "https://<partner-host>/api/market-prices"

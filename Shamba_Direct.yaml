@@ -19,10 +19,13 @@ info:
     Use a local or disposable database when testing write operations.
 
     ## Authentication and privacy
-    The API does not currently require or issue authentication tokens. Login
-    checks credentials but does not create a session. Do not use real passwords
-    or personal information in Swagger UI examples. Do not expose this
-    development API to the public internet.
+    Every `/api` request requires a valid `X-API-Key` header. Configure
+    separate keys for `API_KEY_RING_PARTNER` and `API_KEY_TEAM`; the partner
+    key is read-only and limited to partner data. Missing or invalid keys
+    receive HTTP 401. The limit is 100 requests per key per minute; excess
+    requests receive HTTP 429 with JSON and a `Retry-After` header. API keys
+    identify consumers, not end users. Keep keys private and do not expose
+    the team key to browsers or untrusted clients.
 
     ## Conventions
     Request bodies use JSON. Most write fields use camelCase; `/api/enquiries`
@@ -43,6 +46,9 @@ components:
         error:
           type: string
           description: Human-readable reason the request failed
+        retryAfter:
+          type: integer
+          description: Seconds until another request is accepted (included for rate-limit responses)
       required: [error]
       example: {error: "Listing not found"}
 
@@ -367,33 +373,16 @@ components:
       properties:
         id: {type: integer}
         full_name: {type: string}
-        email: {type: string, nullable: true}
-        phone_number: {type: string}
         role: {type: string, enum: [farmer, buyer, admin]}
         county: {type: string, nullable: true}
         is_verified: {type: integer}
-        created_at: {type: "string", format: "date-time"}
-        updated_at: {type: "string", format: "date-time"}
-        profile:
-          type: "object"
-          nullable: true
-          description: "Farmers: { farm_size, main_crops }. Buyers: { company_name, business_type, delivery_address }."
-          additionalProperties: true
-      required: [id, full_name, phone_number, role]
+      required: [id, full_name, role]
       example:
         id: 5
         full_name: "Nairobi Provisions Ltd"
-        email:
-        phone_number: "REDACTED"
         role: "buyer"
         county: "Nairobi"
         is_verified: 1
-        created_at: "2026-09-09T15:57:44.000Z"
-        updated_at: "2026-09-09T15:57:44.000Z"
-        profile:
-          company_name: "Nairobi Provisions Ltd"
-          business_type:
-          delivery_address: "REDACTED"
 
     RegisterInput:
       description: Use a new, unique phone number for each registration test.
@@ -437,6 +426,22 @@ components:
       required:
         - "message"
   responses:
+    Unauthorized:
+      description: "Missing or invalid X-API-Key header or invalid login credentials"
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+          example: {error: "A valid X-API-Key header is required"}
+    TooManyRequests:
+      description: "The per-key request limit has been exceeded"
+      headers:
+        Retry-After:
+          description: "Seconds until another request is accepted"
+          schema: {type: integer}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+          example: {error: "Rate limit exceeded", retryAfter: 60}
     ServerError:
       description: "Unexpected server or database failure (e.g. a foreign key that does not exist, or an invalid enum value).
         The message names the operation that failed."
@@ -444,10 +449,16 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/Error"}
           example: {error: "Failed to add listing"}
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
 
 paths:
   /:
     get:
+      security: []
       tags: [System]
       operationId: healthCheck
       summary: "Health check"
@@ -466,6 +477,10 @@ paths:
       summary: "Database connectivity check"
       description: "Runs `SELECT 1 + 1` against MySQL. Use it to confirm your `.env` credentials work."
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: "Database reachable"
           content:
@@ -515,6 +530,10 @@ paths:
           name: minQuantity
           schema: {type: number}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Array of products (empty array if none match)
           content:
@@ -575,6 +594,10 @@ paths:
               county: "Uasin Gishu"
               harvestNote: "Picked this morning"
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -611,6 +634,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 10
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: The product
           content:
@@ -662,6 +689,10 @@ paths:
             schema: {$ref: '#/components/schemas/ProductPatchInput'}
         required: false
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Updated"
           content:
@@ -692,6 +723,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 10
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -724,6 +759,10 @@ paths:
           name: minQuantity
           schema: {type: number}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Active listings only; an empty array is returned when no records match.
           content:
@@ -760,6 +799,10 @@ paths:
           schema: {type: integer}
           example: 10
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Active listing with farmer details
           content:
@@ -799,6 +842,10 @@ paths:
           name: county
           schema: {type: string}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Only verified farmers with one or more ratings are returned.
           content:
@@ -823,6 +870,10 @@ paths:
           schema: {type: integer, minimum: 1}
           example: 3
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: A one-item array; rating is zero if this farmer has not yet received a review.
           content:
@@ -863,6 +914,10 @@ paths:
           name: status
           schema: {type: string}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Array of orders (empty array if none match)
           content:
@@ -898,6 +953,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/OrderInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -940,6 +999,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/OrderStatusInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Updated"
           content:
@@ -971,6 +1034,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -997,6 +1064,10 @@ paths:
           name: buyerId
           schema: {type: integer}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: >
             If farmerId is supplied, returns an object with `ratings`, `averageRating`,
@@ -1054,6 +1125,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/RatingInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -1090,6 +1165,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -1121,6 +1200,10 @@ paths:
           name: productId
           schema: {type: integer}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Array of enquiries (empty array if none match)
           content:
@@ -1168,6 +1251,10 @@ paths:
               buyer_id: 8
               message: "Can you deliver to Nairobi?"
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -1204,6 +1291,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -1223,6 +1314,10 @@ paths:
       operationId: listContactMessages
       summary: List submitted contact messages (currently no authentication)
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Contact details are redacted in the example.
           content:
@@ -1248,6 +1343,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/ContactMessageInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -1278,6 +1377,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -1301,6 +1404,10 @@ paths:
           name: county
           schema: {type: string}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Array of headquarters
           content:
@@ -1332,6 +1439,10 @@ paths:
               latitude: 0.2827
               longitude: 34.7519
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -1362,6 +1473,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: The headquarters record
           content:
@@ -1404,6 +1519,10 @@ paths:
             schema: {$ref: '#/components/schemas/HeadquartersPatchInput'}
         required: false
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Updated"
           content:
@@ -1429,6 +1548,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -1452,6 +1575,10 @@ paths:
           name: county
           schema: {type: string}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Array of market prices
           content:
@@ -1484,6 +1611,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/RegisterInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "201":
           description: Created
           content:
@@ -1518,6 +1649,10 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/LoginInput'}
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: Logged in
           content:
@@ -1532,32 +1667,17 @@ paths:
                 user:
                   id: 4
                   full_name: "Test Buyer"
-                  email:
-                  phone_number: "REDACTED"
                   role: "buyer"
                   county: "Nairobi"
                   is_verified: 0
-                  created_at: "2026-10-13T18:34:13.000Z"
-                  updated_at: "2026-10-13T18:34:13.000Z"
-                  profile:
-                    company_name: "Test Foods Ltd"
-                    business_type:
-                    delivery_address:
         "400":
           description: Missing phoneNumber or password
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
               example: {error: "phoneNumber and password are required"}
-        "401":
-          description: Invalid credentials
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/Error'}
-              example: {error: "Invalid credentials"}
         '500': {$ref: "#/components/responses/ServerError"}
-      description: Verifies phone number + password and returns the user's profile. **It does not return a token** — 
-        there is no session or token auth yet (arrives in Week 9).
+      description: Verifies phone number and password and returns a limited user profile. This endpoint does not issue an end-user session token; every API request still requires its consumer's X-API-Key.
   /api/auth/users/{id}:
     put:
       tags: [Auth]
@@ -1585,6 +1705,10 @@ paths:
                 deliveryAddress: {type: string}
         required: false
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Updated"
           content:
@@ -1610,6 +1734,10 @@ paths:
           description: Numeric id of the record (the `id` returned when it was created)
           example: 1
       responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         "200":
           description: "Deleted"
           content:
@@ -1642,4 +1770,5 @@ tags:
     description: "Regional hubs (used by the SettleIn integration)."
   - name: "Market Prices"
     description: "Scheduled commodity price feed."
-security: []
+security:
+  - ApiKeyAuth: []

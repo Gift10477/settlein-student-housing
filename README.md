@@ -280,18 +280,20 @@ Configure locally in `server/.env` (never commit actual keys):
 
 ```env
 SHAMBA_API_URL=https://<partner-host>/api
-SHAMBA_API_KEY=
+SHAMBA_API_KEY=<partner-issued-read-only-key>
 SHAMBA_API_KEY_HEADER=X-API-Key
 SHAMBA_API_KEY_PREFIX=
 SETTLEIN_WEB_API_KEY=<your-api-key>
 ```
 
-The partner URL may include or omit its final `/api`. The latest saved Shamba
-contract allows unauthenticated reads, so leave `SHAMBA_API_KEY` empty unless
-Team 14 enables `X-API-Key`; any configured key stays on the backend. Numeric
-`price_per_kg` is treated as KES per the needs statement. Confirm currency and
-the live base URL with Team 14 before claiming live integration works. A county
-may be missing; the widget labels it as unspecified. No live call was verified.
+The partner URL may include or omit its final `/api`. The updated Shamba 1.0.0
+contract requires `X-API-Key` on every `/api` request. Set `SHAMBA_API_KEY` to
+Team 14's read-only ring-partner key; it stays on the backend and is separate
+from SettleIn's accepted consumer keys. Keep `PARTNER_VERSION=v1`: the supplied
+contract still returns a bare market-price array and documents no v2 path.
+Numeric `price_per_kg` is treated as KES per the needs statement. A county may
+be missing; the widget labels it as unspecified. Authenticated live reads were
+verified on 10 November 2026; see `INTEGRATION_LOG.md` for the remaining drift.
 If Team 14 specifies a different key header or a Bearer prefix, the two optional
 auth settings above allow that change without editing the request code.
 
@@ -344,12 +346,11 @@ curl.exe -H "X-API-Key: <your-api-key>" "http://localhost:5000/openapi.yaml"
 ### Partner tests (Part C — Shamba Direct)
 
 The Shamba Direct contract-based tests are in
-`server/__tests__/shamba_direct.test.js`. Once Team 14 provides a running
-base URL, set `SHAMBA_API_URL` and any valid resource IDs, then run:
+`server/__tests__/shamba_direct.test.js`. They load `server/.env` themselves.
+Configure `SHAMBA_API_URL` and `SHAMBA_API_KEY`, then run from `server`:
 
 ```powershell
-$env:SHAMBA_API_URL="https://their-api-url.example.com"
-npm test -- shamba_direct --runInBand
+npm.cmd test -- shamba_direct.test.js
 ```
 
 To run the Week 7 contract tests and API-key tests (database fixtures are mocked;
@@ -359,8 +360,13 @@ the real Express routes, authentication, and rate limiter run):
 npm test -- users.test.js properties.test.js partner_access.test.js auth.test.js
 ```
 
-Each test gets a fresh app and test-only key, so the 100-request limit does not
-leak between tests. These tests do not prove connectivity to a live MySQL server.
+The mocked Week 7 tests get a fresh app and test-only key, so the SettleIn quota
+does not leak between those tests. They do not prove live MySQL connectivity.
+The Shamba suite makes authenticated, read-only live requests and discovers
+current listing, verified-farmer and headquarters IDs. Optional `SHAMBA_*_ID`
+settings prefer an available record but do not require stale example ID 1.
+It also checks missing-key rejection. It sends no enquiry POST with the
+read-only partner key and keeps documented 400 expectations strict.
 Run `npm test` for all tests; Shamba Direct tests are skipped unless
 `SHAMBA_API_URL` is configured.
 

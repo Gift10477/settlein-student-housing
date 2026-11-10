@@ -3,10 +3,11 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env'), quiet: true });
 
 async function preflight() {
-  if (process.env.PARTNER_VERSION !== 'v2') {
-    throw new Error('Set PARTNER_VERSION=v2 after confirming the partner v2 contract.');
+  if ((process.env.PARTNER_VERSION || 'v1') !== 'v1') {
+    throw new Error('The supplied Shamba contract requires PARTNER_VERSION=v1; v2 is not yet confirmed.');
   }
   if (!process.env.SHAMBA_API_URL) throw new Error('Configure SHAMBA_API_URL.');
+  if (!process.env.SHAMBA_API_KEY) throw new Error('Configure SHAMBA_API_KEY with the Shamba ring-partner key.');
   const key = process.env.SETTLEIN_WEB_API_KEY || process.env.API_KEYS?.split(',')[0]?.trim();
   if (!key) throw new Error('Configure an accepted API key.');
   const base = `http://127.0.0.1:${process.env.PORT || 5000}`;
