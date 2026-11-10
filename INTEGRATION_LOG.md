@@ -56,6 +56,22 @@ references to the removed tools. No live partner request was made.
 | Time (Africa/Nairobi) | Environment: local/live | Request / action | Expected | Actual symptom/status | Root cause | Fix | Whose code / who fixed it | Retest |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Week 13 local implementation - 9 November 2026
+
+| Trigger | Change | Owner | Evidence / status |
+| --- | --- | --- | --- |
+| Compatible breaking-change exercise | Property-list v2 uses data/count; both old aliases retain their response | SettleIn | Deterministic before/after fixture and version tests; no live database claim |
+| Upstream shape embedded in route | Centralized partner parsers and environment version switch with rollback | SettleIn adapter | Mocked fresh-data switch/rollback test; v2 path/schema provisional pending Team 14 notice |
+| Outage test recovered unexpectedly | Fail all three attempts instead of only the first | SettleIn test fixture | Retry behavior retained; outage/recovery assertion corrected |
+
+Partner notice receipt, delivery/acknowledgement, live stale:false and partner
+caller-log evidence remain pending. No partner message, commit or push was made.
+
+Final local verification: 125 backend tests passed in 11 suites; 16 live partner
+tests skipped. Before/after fixture SHA-256 hashes match; documentation rebuilt;
+git diff --check passed. Retry-helper diagnostics now omit arbitrary upstream
+exception messages after the corrected outage test exposed credential leakage.
+
 Examples in the handout are not evidence. If a live check works on the first
 attempt, say so; also record deliberate wrong-key, nonexistent-ID (on a route
 that takes an ID), shape and provider-down tests as actually performed.

@@ -367,6 +367,15 @@ Run `npm test` for all tests; Shamba Direct tests are skipped unless
 ---
 
 
+## Week 13 versioning
+
+GET `/api/v2/properties` returns `{ data: [...], count: N }`. Legacy list URLs
+`/api/properties` and `/api/v1/properties` retain their array response and send
+deprecation headers. Filters, API key and shared quota remain in effect.
+See [VERSIONING_NOTES.md](VERSIONING_NOTES.md) and
+[DEPRECATION_NOTICE.md](DEPRECATION_NOTICE.md) for the proposed deadline and
+pending partner checks. Keep `PARTNER_VERSION=v1` until Team 14 confirms v2.
+
 ##  Team Members
 
 This project was developed by:

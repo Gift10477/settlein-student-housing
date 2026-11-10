@@ -1,3 +1,4 @@
+const { partnerVersion } = require('../partner');
 const express = require('express');
 const router = express.Router();
 const { marketRequest } = require('../integrations/shambaRequest');
@@ -26,18 +27,7 @@ router.get('/', async (req, res) => {
       throw new Error(`Partner HTTP ${response.status}`);
     }
     const data = await response.json();
-    if (!Array.isArray(data) || data.some((row) => !row || typeof row.crop_name !== 'string' ||
-        !row.crop_name.trim() || typeof row.price_per_kg !== 'number' ||
-        !Number.isFinite(row.price_per_kg) || row.price_per_kg < 0 ||
-        (row.county !== undefined && row.county !== null && typeof row.county !== 'string'))) {
-      throw new Error('Invalid market price response');
-    }
-
-    const formattedPrices = data.map((row) => ({
-      crop_name: row.crop_name.trim(),
-      price_per_kg: row.price_per_kg,
-      county: row.county?.trim() || null
-    }));
+    const formattedPrices = partnerVersion().parse(data);
 
     const nowIso = new Date().toISOString();
     lastGoodData = {

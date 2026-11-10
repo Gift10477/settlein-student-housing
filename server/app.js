@@ -48,8 +48,9 @@ app.get('/openapi.yaml', (req, res) => {
 // Mount Routes
 app.use('/api/market-prices', require('./routes/marketPrices'));
 app.use('/api/v1/market-prices', require('./routes/marketPrices'));
-app.use('/api/properties', require('./routes/properties'));
-app.use('/api/v1/properties', require('./routes/properties'));
+app.use('/api/v2/properties', require('./v2'));
+app.use('/api/properties', require('./v1'));
+app.use('/api/v1/properties', require('./v1'));
 app.use('/api/users', require('./routes/user'));
 app.use('/api/v1/users', require('./routes/user'));
 app.use('/api/bookings', require('./routes/bookings'));

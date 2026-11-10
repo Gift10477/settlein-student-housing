@@ -1,0 +1,15 @@
+[
+  {
+    "county": null,
+    "id": "lab13",
+    "title": "Lab housing",
+    "price": 12000,
+    "campus": "strathmore",
+    "verified": true,
+    "vacant_units": 1,
+    "amenities": [
+      "Wi-Fi"
+    ],
+    "images": []
+  }
+]

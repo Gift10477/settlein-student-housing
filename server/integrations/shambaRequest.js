@@ -1,10 +1,11 @@
+const { partnerVersion } = require('../partner');
 function marketRequest(env, county) {
   const url = new URL(env.SHAMBA_API_URL);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
     throw new Error('Invalid partner URL');
   }
   const prefix = url.pathname.replace(/\/+$/, '');
-  url.pathname = `${prefix}${prefix.endsWith('/api') ? '' : '/api'}/market-prices`;
+  url.pathname = `${prefix}${prefix.endsWith('/api') ? '' : '/api'}${partnerVersion(env).path}`;
   if (county) url.searchParams.set('county', county.trim());
   const headers = {};
   if (env.SHAMBA_API_KEY) {

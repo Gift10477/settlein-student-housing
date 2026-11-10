@@ -41,7 +41,7 @@ function monitor(req, res, next) {
     console.log(JSON.stringify({
       time: new Date().toISOString(),
       method: req.method,
-      path: req.path,
+      path: req.baseUrl + req.path,
       status: res.statusCode,
       ms: round(ms),
       caller: who(req),

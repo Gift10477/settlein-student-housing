@@ -535,6 +535,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/properties:
+    get:
+      summary: List properties (legacy array response)
+      deprecated: true
+      description: Same filters as /api/v2/properties. Proposed migration deadline 2026-11-13; legacy routes remain running through Demo Day.
+      responses:
+        '200':
+          description: Property list. /api/properties is an equivalent legacy alias.
+          headers:
+            Deprecation:
+              schema: { type: string, example: 'true' }
+            Sunset:
+              schema: { type: string, example: 'Fri, 13 Nov 2026 00:00:00 GMT' }
+            Link:
+              schema: { type: string, example: '</api/v2/properties>; rel="successor-version"' }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: Database failure
     post:
       summary: Create a property
       operationId: createProperty
@@ -812,6 +837,35 @@ paths:
                 type: object
                 properties:
                   message: { type: string, example: 'Market prices are not available yet. Please try again later.' }
+  /api/v2/properties:
+    get:
+      summary: List properties with count metadata
+      description: Same property fields as v1; count is returned rows. Detail and write operations also accept this prefix with existing response shapes.
+      parameters:
+        - { name: campus, in: query, schema: { type: string } }
+        - { name: type, in: query, schema: { type: string } }
+        - { name: minPrice, in: query, schema: { type: number } }
+        - { name: maxPrice, in: query, schema: { type: number } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Successful property list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, count]
+                properties:
+                  data:
+                    type: array
+                    items: { type: object, additionalProperties: true }
+                  count: { type: integer, minimum: 0 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: Database failure
 components:
   parameters:
     UserId:

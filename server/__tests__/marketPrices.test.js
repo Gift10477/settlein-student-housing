@@ -116,11 +116,28 @@ test('empty market data is a valid empty result', async () => {
 
 test('partner down produces a safe diagnostic and recovers on the next request', async () => {
   marketPricesRouter._resetLastGoodData();
-  fetchMock.mockRejectedValueOnce(Object.assign(new Error('unsafe partner-test-key'), { cause: { code: 'ECONNREFUSED' } }));
+  const outage = Object.assign(new Error('unsafe partner-test-key'), { cause: { code: 'ECONNREFUSED' } });
+  // An outage must outlast the initial call and both configured retries.
+  fetchMock.mockRejectedValueOnce(outage).mockRejectedValueOnce(outage).mockRejectedValueOnce(outage);
   expect((await get()).status).toBe(502);
   expect(logger).toHaveBeenCalledWith('Market price provider request failed:', 'ECONNREFUSED');
   expect(JSON.stringify(logger.mock.calls)).not.toContain('partner-test-key');
   expect((await get()).status).toBe(200);
+});
+
+test('candidate v2 migration and rollback return fresh normalized prices', async () => {
+  try {
+    for (const version of ['v1', 'v2', 'v1', 'v2']) {
+      process.env.PARTNER_VERSION = version;
+      fetchMock.mockResolvedValue({ ok: true, status: 200, headers: new Headers(),
+        json: async () => version === 'v2' ? { data: rows, count: rows.length } : rows });
+      const res = await get();
+      expect(res.status).toBe(200);
+      expect(res.body.stale).toBe(false);
+      expect(res.body.prices).toEqual([{ crop_name: 'Tomatoes', price_per_kg: 80, county: 'Nairobi' }]);
+      expect(fetchMock.mock.calls.at(-1)[0].pathname).toBe(version === 'v2' ? '/api/v2/market-prices' : '/api/market-prices');
+    }
+  } finally { delete process.env.PARTNER_VERSION; }
 });
 
 test('Week 11 Fallback: returns cached lastGoodData with stale: true when upstream fails after prior success', async () => {

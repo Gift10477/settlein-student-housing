@@ -128,7 +128,10 @@ async function fetchWithRetry(url, options = {}, config = {}) {
 
     } catch (err) {
       const isTimeout = err.name === 'TimeoutError' || combinedSignal.aborted;
-      const failureReason = isTimeout ? `Timeout after ${timeoutMs}ms` : (err.message || 'Network failure');
+      // Upstream exception messages can contain credentials or request URLs.
+      const code = err.cause?.code;
+      const safeCode = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'EAI_AGAIN'].includes(code) ? code : 'Network failure';
+      const failureReason = isTimeout ? `Timeout after ${timeoutMs}ms` : safeCode;
 
       if (attempt < effectiveMaxRetries) {
         const delayMs = initialDelayMs * Math.pow(backoffFactor, attempt);
