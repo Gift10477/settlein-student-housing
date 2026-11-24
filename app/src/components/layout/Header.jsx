@@ -13,12 +13,12 @@
  *   theme         — 'light' | 'dark'
  *   onToggleTheme — fn() to flip the theme
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const NAV_ITEMS = [
   { label: 'Home',          view: 'home' },
   { label: 'Properties',    view: 'listings' },
-  { label: 'About',         view: 'about' },
+  { label: 'Help',          view: 'help' },
   { label: 'Contact',       view: 'contact' },
   { label: 'For Landlords', view: 'landlord' },
 ];
@@ -84,7 +84,7 @@ export default function Header({ currentView, onNavigate, theme, onToggleTheme, 
     <header className={`main-header slide-down${scrolled ? ' header-scrolled' : ''}`}>
       {/* Logo */}
       <div className="logo" onClick={() => handleNav('home')} role="button" tabIndex={0}
-        aria-label="Go to home page">
+        onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();handleNav('home');}}} aria-label="Go to home page">
         <span className="logo-icon" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,7 +108,7 @@ export default function Header({ currentView, onNavigate, theme, onToggleTheme, 
 
       {/* Nav links */}
       <nav className={`nav-links${drawerOpen ? ' nav-open' : ''}`} id="main-nav">
-        {NAV_ITEMS.map(({ label, view }) => (
+        {NAV_ITEMS.filter(item => item.view !== 'landlord' || currentUser?.role === 'landlord').map(({ label, view }) => (
           <a
             key={view}
             href="#"
@@ -119,12 +119,14 @@ export default function Header({ currentView, onNavigate, theme, onToggleTheme, 
           </a>
         ))}
 
+        {currentUser && <button className="nav-portal" aria-current={currentView === 'reservations' ? 'page' : undefined} onClick={() => handleNav('reservations')}>My reservations</button>}
+        {currentUser?.role === 'admin' && <button className="nav-portal nav-portal-admin" aria-current={currentView === 'admin' ? 'page' : undefined} onClick={() => handleNav('admin')}>Admin portal</button>}
         {/* User Auth Section */}
         {currentUser ? (
           <>
-            <span className="nav-user-name" style={{ color: 'var(--text)', fontWeight: 500, margin: '0 0.5rem' }}>
-              Hi, {currentUser.name.split(' ')[0]}
-            </span>
+            <button className="nav-user-name" onClick={() => handleNav('account')}>
+              {currentUser.name.split(' ')[0]} · Account
+            </button>
             <button className="nav-get-started" onClick={() => { closeDrawer(); onLogout(); }}>
               Sign Out
             </button>

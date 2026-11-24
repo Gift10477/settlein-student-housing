@@ -1,0 +1,26 @@
+.report-controls { flex-wrap: wrap; }
+.report-controls label { display: grid; gap: .4rem; }
+.report-document { background: var(--bg-card, white); color: var(--text-primary); padding: 1.5rem; border: 1px solid var(--border-color, #dde3ed); border-radius: 12px; }
+.report-brand { display: flex; gap: .8rem; align-items: center; color: var(--primary, #3a86ff); margin-bottom: 1.5rem; }
+.report-brand h2, .report-brand p { margin: 0; }
+.report-scroll { overflow-x: auto; margin: 1rem 0; }
+.report-document table { border-collapse: collapse; width: 100%; font-size: .8rem; }
+.report-document th, .report-document td { padding: .6rem; border: 1px solid #ccd3df; text-align: left; overflow-wrap: anywhere; }
+.report-document th { background: #edf4ff; color: #163d77; text-transform: capitalize; }
+.report-document footer { font-size: .8rem; padding-top: 1rem; }
+.help-topic { padding: 1rem 0; border-bottom: 1px solid #ccd3df; }
+.help-topic summary { cursor: pointer; font-weight: 600; }
+.setup-secret { display: block; overflow-wrap: anywhere; padding: 1rem; background: #edf4ff; color: #163d77; }
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #3a86ff; outline-offset: 3px; }
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  body * { visibility: hidden; }
+  .report-document, .report-document * { visibility: visible; }
+  .report-document { position: absolute; inset: 0; padding: 0; border: none; color: #111; background: white; width: 100%; }
+  .report-scroll { overflow: visible; }
+  .report-document table { font-size: 8pt; }
+  .report-document th, .report-document td { padding: 4pt; }
+  .report-document tr { break-inside: avoid; }
+  .report-document thead { display: table-header-group; }
+  .report-controls { display: none; }
+}

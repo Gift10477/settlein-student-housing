@@ -13,15 +13,16 @@
  *   onView        — fn(id) navigate to detail view
  *   onToast       — fn(message) show toast
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import FilterSidebar from './FilterSidebar';
 import PropertyCard from './PropertyCard';
-import { getProperties } from '../../services/api';
+import { matchesListing } from '../../services/listingFilters';
+import { getProperties } from '../../services/database';
 
 /** Default empty filter state */
 const DEFAULT_FILTERS = {
   campus: 'all', type: 'all', maxPrice: 25000,
-  amenities: [], verified: false, search: '',
+  amenities: [], gender_policy: 'all', furnishing_status: 'all', verified: false, search: '',
 };
 
 export default function ListingsView({ initialCampus = 'all', onView, onToast }) {
@@ -30,49 +31,15 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
   const [rawProps, setRawProps] = useState([]);
   const [loading,  setLoading]  = useState(true);
 
-  /* Load live properties from MySQL backend via Express */
-  const loadListings = () => {
-    setLoading(true);
-    getProperties()
-      .then((data) => {
-        setRawProps(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching properties from MySQL database:', err);
-        setRawProps([]);
-        setLoading(false);
-        if (onToast) onToast('Failed to load listings from database. Please check your backend connection.');
-      });
-  };
-
   useEffect(() => {
-    loadListings();
-  }, []);
+    let active = true;
+    getProperties().then(data => { if(active) { setRawProps(data); setLoading(false); } }).catch(() => { if(active) { setLoading(false); onToast?.('Unable to load listings. Please retry.'); } });
+    return () => { active = false; };
+  }, [onToast]);
 
   /* Apply filters and sort (memoised for performance) */
   const displayed = useMemo(() => {
-    let list = [...rawProps];
-    if (filters.campus && filters.campus !== 'all') {
-      list = list.filter(p => p.campus === filters.campus);
-    }
-    if (filters.type && filters.type !== 'all') {
-      list = list.filter(p => p.type === filters.type);
-    }
-    if (filters.maxPrice) {
-      list = list.filter(p => (Number(p.price) || 0) <= Number(filters.maxPrice));
-    }
-    if (filters.verified) {
-      list = list.filter(p => Boolean(p.verified));
-    }
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      list = list.filter(p =>
-        (p.title && p.title.toLowerCase().includes(q)) ||
-        (p.location && p.location.toLowerCase().includes(q)) ||
-        (p.type && p.type.toLowerCase().includes(q))
-      );
-    }
+    const list = rawProps.filter(property => matchesListing(property, filters));
     return list.sort((a, b) => {
       if (sortBy === 'price-asc')  return (Number(a.price) || 0) - (Number(b.price) || 0);
       if (sortBy === 'price-desc') return (Number(b.price) || 0) - (Number(a.price) || 0);
@@ -117,7 +84,6 @@ export default function ListingsView({ initialCampus = 'all', onView, onToast })
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
-            onApply={() => {}} /* filters are live — no need for explicit apply */
             onClear={() => setFilters({ ...DEFAULT_FILTERS })}
           />
 

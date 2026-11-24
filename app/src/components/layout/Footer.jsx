@@ -11,7 +11,6 @@
  * Props:
  *   onNavigate — fn(viewId) for internal link navigation
  */
-import React from 'react';
 
 const QUICK_LINKS = [
   { label: 'Browse Properties', view: 'listings' },
@@ -102,7 +101,7 @@ const SOCIAL_LINKS = [
   },
 ];
 
-export default function Footer({ onNavigate }) {
+export default function Footer({ onNavigate, currentUser }) {
   const year = new Date().getFullYear();
 
   return (
@@ -138,7 +137,7 @@ export default function Footer({ onNavigate }) {
         <div className="footer-col">
           <h4 className="footer-col-heading">QUICK LINKS</h4>
           <ul className="footer-link-list">
-            {QUICK_LINKS.map(({ label, view }) => (
+            {QUICK_LINKS.filter(item => item.view !== 'landlord' || currentUser?.role === 'landlord').map(({ label, view }) => (
               <li key={label}>
                 <a href="#" onClick={e => { e.preventDefault(); onNavigate(view); }}>
                   {label}

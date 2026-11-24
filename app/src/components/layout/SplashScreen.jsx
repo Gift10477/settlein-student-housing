@@ -4,7 +4,6 @@
  * Animated loading curtain shown on app startup.
  * Slides up and hides once the `loaded` prop is true.
  */
-import React from 'react';
 
 /**
  * @param {{ loaded: boolean }} props

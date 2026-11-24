@@ -10,7 +10,6 @@
  * Props:
  *   onNavigate — fn(viewId) for CTA buttons
  */
-import React from 'react';
 
 const STATS = [
   { value: '2,500+', label: 'Listed Properties' },

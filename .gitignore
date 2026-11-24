@@ -27,3 +27,10 @@ TestResults.xml
 .env.*
 !.env.example
 
+
+node_modules/
+app/dist/
+server/admin-access.local.txt
+server/uploads/
+server/security-key.local.txt
+*.backup.sql

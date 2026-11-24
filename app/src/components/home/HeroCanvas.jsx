@@ -8,7 +8,7 @@
  *   onSearch   — fn(campus) called when Search or a tag is clicked
  *   onNavigate — fn(view) for CTA buttons
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const UNIVERSITY_TAGS = [
   { label: 'University of Nairobi', value: 'uon' },

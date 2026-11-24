@@ -4,7 +4,6 @@
  * 4-column grid of feature cards with light-blue icon circles.
  * Matches UniNest "Why Choose UniNest?" section design.
  */
-import React from 'react';
 
 const FEATURES = [
   {

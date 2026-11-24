@@ -4,7 +4,7 @@
  * 4 stats in a horizontal white card:
  *   Listed Properties · Happy Students · Universities Covered · Satisfaction Rate
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const STATS = [
   { value: 2500, suffix: '+', label: 'Listed Properties' },

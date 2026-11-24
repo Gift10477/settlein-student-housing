@@ -8,7 +8,6 @@
  * Props:
  *   onNavigate — fn(viewId) for CTA button click
  */
-import React from 'react';
 
 export default function LandlordCTA({ onNavigate }) {
   return (

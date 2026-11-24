@@ -11,7 +11,8 @@
  * Props:
  *   onToast — fn(message) show feedback toast
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { managementRequest } from '../../services/database';
 
 const CONTACT_ITEMS = [
   {
@@ -77,21 +78,18 @@ export default function ContactView({ onToast }) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) {
       onToast('Please fill in all required fields.');
       return;
     }
     setSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSubmitting(false);
-      setSent(true);
-      onToast('Message sent! We will get back to you within 24 hours.');
+    try {
+      const result = await managementRequest('/community/contact', 'POST', form);
+      setSent(true); onToast(result.message);
       setForm({ name: '', email: '', subject: SUBJECTS[0], message: '' });
-      setTimeout(() => setSent(false), 4000);
-    }, 1200);
+    } catch (error) { onToast(error.message); } finally { setSubmitting(false); }
   };
 
   return (

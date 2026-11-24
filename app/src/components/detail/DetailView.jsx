@@ -15,9 +15,10 @@
  *   onToast     — fn(message) show toast
  *   currentUser — current authenticated user object
  */
-import React, { useState, useEffect } from 'react';
-import FoodCostWidget from './FoodCostWidget';
-import { getPropertyById, createBooking, getStudentLeaseTimeline, getCurrentUser } from '../../services/api';
+import { useState, useEffect } from 'react';
+import { getPropertyById, createBooking, getCurrentUser, managementRequest } from '../../services/database';
+
+import BookingPayment from '../admin/BookingPayment';
 
 /** Render N filled stars + empty remainder */
 function StarRating({ value }) {
@@ -38,34 +39,24 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
   const [expectedArrivalTime, setExpectedArrivalTime] = useState('10:00 AM');
   const [leaseDuration, setLeaseDuration] = useState('1 Semester (4 months)');
   const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingStudentId, setBookingStudentId] = useState('');
+  const [bookingStudentId, setBookingStudentId] = useState(() => (currentUser || getCurrentUser())?.student_id || '');
   const [isBooking, setIsBooking] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
-  const [liveTimelineJson, setLiveTimelineJson] = useState(null);
 
   /* Review form state */
-  const [reviewName, setReviewName] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewStars, setReviewStars] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    // Pre-fill student ID from logged-in user when component mounts
-    const user = currentUser || getCurrentUser();
-    if (user && user.student_id) {
-      setBookingStudentId(user.student_id);
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
     let mounted = true;
-    setLoading(true);
-    getPropertyById(propId)
-      .then((data) => {
+    Promise.all([getPropertyById(propId), managementRequest('/community/reviews/' + encodeURIComponent(propId))])
+      .then(([data, savedReviews]) => {
         if (mounted) {
           if (data) {
             setProperty(data);
-            setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+            setReviews(savedReviews);
           } else {
             setError('Property not found in database.');
           }
@@ -106,12 +97,13 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
     e.preventDefault();
     setIsBooking(true);
 
-    const user = currentUser || getCurrentUser() || { id: 1042, name: 'Student' };
+    const user = currentUser || getCurrentUser();
+    if (!user) { setIsBooking(false); onToast('Please sign in to request a reservation.'); return; }
 
     try {
       const res = await createBooking({
         user_id: user.id,
-        student_id: bookingStudentId || user.student_id || '',
+        student_id: bookingStudentId || user.student_id || undefined,
         property_id: property.id,
         property_title: property.title,
         move_in_date: moveInDate,
@@ -122,40 +114,22 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
 
       setConfirmedBooking(res.booking);
       setIsBooking(false);
-      onToast(`Booking confirmed! Recorded at ${new Date(res.booking.booked_at).toLocaleTimeString()}`);
+      onToast(`Reservation submitted! Recorded at ${new Date(res.booking.booked_at).toLocaleTimeString()}`);
 
-      // Query the live lease timeline endpoint automatically
-      try {
-        const timeline = await getStudentLeaseTimeline(user.id);
-        setLiveTimelineJson(timeline);
-      } catch (tErr) {
-        console.warn('Auto-query timeline notice:', tErr);
-      }
     } catch (err) {
       setIsBooking(false);
       onToast(`Booking error: ${err.message}`);
     }
   };
 
-  /** Fetch live lease timeline from database */
-  const handleTestLeaseTimeline = async () => {
-    const user = currentUser || getCurrentUser() || { id: 1042 };
-    try {
-      const data = await getStudentLeaseTimeline(user.id);
-      setLiveTimelineJson(data);
-      onToast('Lease timeline retrieved live from database!');
-    } catch (err) {
-      onToast(`Lease timeline error: ${err.message}`);
-    }
-  };
-
   /** Submit a review */
-  const handleReview = (e) => {
-    e.preventDefault();
-    const newReview = { name: reviewName, stars: reviewStars, comment: reviewComment };
-    setReviews(prev => [...prev, newReview]);
-    setReviewName(''); setReviewComment(''); setReviewStars(5);
-    onToast('Review submitted! Thank you.');
+  const handleReview = async (e) => {
+    e.preventDefault(); setReviewBusy(true);
+    try {
+      await managementRequest('/community/reviews/' + encodeURIComponent(propId), 'POST', { stars: reviewStars, comment: reviewComment });
+      setReviews(await managementRequest('/community/reviews/' + encodeURIComponent(propId)));
+      setReviewComment(''); onToast('Review saved. Thank you.');
+    } catch (error) { onToast(error.message); } finally { setReviewBusy(false); }
   };
 
   const amenitiesList = Array.isArray(property.amenities)
@@ -227,8 +201,8 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
             </p>
           </div>
           <div><h4>Nearest Campus</h4><p>{property.distance || property.campus}</p></div>
-          <div><h4>Gender Policy</h4><p>{property.gender_policy || 'Mixed'}</p></div>
-          <div><h4>Furnishing</h4><p>{property.furnishing_status || 'Unfurnished'}</p></div>
+          <div><h4>Gender Policy</h4><p>{property.gender_policy || 'Not specified'}</p></div>
+          <div><h4>Furnishing</h4><p>{property.furnishing_status || 'Not specified'}</p></div>
         </div>
 
         {/* Cost Breakdown */}
@@ -247,7 +221,6 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
            </div>
         </div>
 
-        <FoodCostWidget key={property.id} rent={property.price} propertyCounty={property.county} location={property.location} />
 
         {/* Amenities */}
         <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Amenities</h3>
@@ -264,12 +237,12 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
               🗓️ Book Accommodation & Generate Lease Timeline
             </h3>
             <span style={{ fontSize: '0.8rem', background: '#dbeafe', color: '#1e40af', padding: '0.25rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
-              Live Database Integration
+              Administrator approval required
             </span>
           </div>
 
           <p style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '1.25rem' }}>
-            Reserve this room directly. Your move-in date and arrival time will be saved into the MySQL database in real time, making your lease schedule accessible to downstream services (StudySync).
+            Choose your move-in date and submit a reservation request. Pay the booking fee within 24 hours using the mock checkout. Unpaid requests past the deadline must be rejected by an administrator. Payment is followed by administrator approval, subject to availability. Track progress in My reservations.
           </p>
 
           {property.vacant_units === 0 ? (
@@ -357,7 +330,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
                   disabled={isBooking}
                   style={{ padding: '0.65rem 1.5rem', fontWeight: 700, fontSize: '0.95rem' }}
                 >
-                  {isBooking ? 'Recording Booking...' : '✓ Confirm Room Booking'}
+                  {isBooking ? 'Recording Booking...' : '✓ Request reservation'}
                 </button>
               </div>
             </form>
@@ -369,12 +342,13 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
               <span style={{ fontSize: '1.75rem', lineHeight: 1 }}>🎉</span>
               <div>
                 <h4 style={{ margin: '0 0 0.25rem', color: '#166534', fontSize: '1rem', fontWeight: 700 }}>
-                  Booked Successfully!
+                  Reservation submitted
                 </h4>
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', color: '#15803d' }}>
-                  Your accommodation has been reserved. Booking #{confirmedBooking.booking_id} recorded at{' '}
+                  {confirmedBooking.payment_status === 'paid' ? 'Payment received. Awaiting administrator approval.' : 'Pay the booking fee before administrator approval.'} Booking #{confirmedBooking.booking_id} recorded at{' '}
                   <strong>{new Date(confirmedBooking.booked_at).toLocaleTimeString()}</strong>.
                 </p>
+                <BookingPayment booking={confirmedBooking} onUpdated={async () => { const rows = await managementRequest('/bookings'); const updated = rows.find(row => row.id === confirmedBooking.booking_id); if (updated) setConfirmedBooking({...confirmedBooking, ...updated}); }} />
                 <p style={{ margin: 0, fontSize: '0.82rem', color: '#166534' }}>
                   Move-in: <strong>{new Date(confirmedBooking.move_in_date).toLocaleDateString()}</strong> at{' '}
                   <strong>{confirmedBooking.expected_arrival_time}</strong>
@@ -409,13 +383,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
             <h4 style={{ fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>Leave a Review</h4>
             <form onSubmit={handleReview}>
               <div style={{ marginBottom: '0.75rem' }}>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  value={reviewName}
-                  onChange={e => setReviewName(e.target.value)}
-                  required
-                />
+                <p>Reviewing as {currentUser?.name}. An approved reservation is required.</p>
               </div>
               <div style={{ marginBottom: '0.75rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -428,7 +396,7 @@ export default function DetailView({ propId, onBack, onToast, currentUser }) {
               <div style={{ marginBottom: '0.75rem' }}>
                 <textarea rows={3} placeholder="Share your experience…" value={reviewComment} onChange={e => setReviewComment(e.target.value)} required />
               </div>
-              <button type="submit" className="btn">Submit Review</button>
+              <button type="submit" className="btn" disabled={reviewBusy}>{reviewBusy ? 'Saving…' : 'Save review'}</button>
             </form>
           </div>
         </div>

@@ -1,0 +1,49 @@
+name: Test and publish SettleIn
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            server/package-lock.json
+      - run: npm ci --prefix server
+      - run: npm ci --prefix app
+      - run: npm test --prefix server
+      - run: npm test --prefix app
+      - run: npm run lint --prefix app
+      - name: Build frontend
+        run: npm run build --prefix app
+        env:
+          VITE_BASE_PATH: /settlein-student-housing/
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.VITE_API_BASE_URL != ''
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

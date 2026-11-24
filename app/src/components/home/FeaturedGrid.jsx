@@ -10,9 +10,9 @@
  *   onNavigate — fn(viewId) navigate to listings
  *   onToast    — fn(message) show toast
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import FeaturedCard from './FeaturedCard';
-import { getProperties } from '../../services/api';
+import { getProperties } from '../../services/database';
 
 /** Preset styling accents for the top featured cards */
 const CARD_ACCENTS = [

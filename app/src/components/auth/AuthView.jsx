@@ -9,8 +9,8 @@
  *   onNavigate — fn(viewId) for post-auth redirect
  *   onToast    — fn(message) to show a toast notification
  */
-import React, { useState } from 'react';
-import { registerUser, loginUser } from '../../services/api';
+import { useState } from 'react';
+import { registerUser, loginUser } from '../../services/database';
 
 /* Feature bullets shown on the left panel */
 const FEATURES = [
@@ -22,7 +22,7 @@ const FEATURES = [
 
 export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
   const [activeTab,       setActiveTab]       = useState('signup');
-  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [siCode, setSiCode] = useState('');
   const [showPassword,    setShowPassword]    = useState(false);
 
   /* Sign In state */
@@ -41,11 +41,10 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    const result = await loginUser(siEmail, siPassword);
+    const result = await loginUser(siEmail, siPassword, siCode);
     if (result.success) {
       if (onAuthSuccess) onAuthSuccess(result.user);
       onToast(result.message);
-      onNavigate('home');
     } else {
       onToast(result.message);
     }
@@ -57,8 +56,8 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
       name: suName,
       email: suEmail,
       phone: suPhone,
-      student_id: suStudentId,
-      course: suCourse,
+      student_id: suRole === 'student' ? suStudentId : '',
+      course: suRole === 'student' ? suCourse : '',
       residence_area: suResidenceArea,
       password: suPassword,
       role: suRole,
@@ -67,10 +66,11 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
 
     if (result.success) {
       if (onAuthSuccess) onAuthSuccess(result.user);
-      onToast('Account created and registered in MySQL database!');
-      onNavigate('home');
+      onToast('Account created successfully!');
     } else {
-      onToast(result.message);
+      onToast(result.accountCreated
+        ? 'Your account was created, but automatic sign-in failed. Please use the Sign In tab.'
+        : result.message);
     }
   };
 
@@ -82,7 +82,7 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
         <div className="auth-brand-inner">
 
           {/* Logo */}
-          <div className="auth-logo" onClick={() => onNavigate('home')} role="button" tabIndex={0}>
+          <div className="auth-logo" onClick={() => onNavigate('home')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onNavigate('home');}}}>
             <span className="auth-logo-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -178,14 +178,14 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                   />
                 </div>
 
-                <div className="auth-input-group">
+                {suRole === 'student' && <div className="auth-input-group">
                   <label htmlFor="su-studentid">Student ID / Registration Number</label>
                   <input
                     id="su-studentid" type="text" placeholder="e.g. 193923 or STU-4021"
                     value={suStudentId} onChange={e => setSuStudentId(e.target.value)}
                     required
                   />
-                </div>
+                </div>}
 
                 <div className="auth-input-group">
                   <label htmlFor="su-phone">Phone Number</label>
@@ -196,7 +196,7 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                   />
                 </div>
 
-                <div className="auth-input-group">
+                {suRole === 'student' && <div className="auth-input-group">
                   <label htmlFor="su-course">Course / Programme of Study</label>
                   <select
                     id="su-course"
@@ -214,7 +214,7 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                     <option value="Diploma in Business Information Technology">Diploma in Business Information Technology</option>
                     <option value="General Undergraduate Student">General Undergraduate Student</option>
                   </select>
-                </div>
+                </div>}
 
                 <div className="auth-input-group">
                   <label htmlFor="su-residence">Current Residence Area / Estate</label>
@@ -255,8 +255,6 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                     placeholder="At least 8 characters"
                     minLength={8}
                     value={suPassword} onChange={e => setSuPassword(e.target.value)}
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
                     required autoComplete="new-password"
                   />
                   <button type="button" className="auth-eye-btn"
@@ -309,8 +307,6 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={siPassword} onChange={e => setSiPassword(e.target.value)}
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
                     required autoComplete="current-password"
                   />
                   <button type="button" className="auth-eye-btn"
@@ -324,8 +320,10 @@ export default function AuthView({ onNavigate, onToast, onAuthSuccess }) {
                   </button>
                 </div>
 
-                <div className="auth-forgot-row">
-                  <a href="#" className="auth-forgot">Forgot password?</a>
+                <div className="auth-input-group">
+                  <label htmlFor="si-code">Authenticator code (if enabled)</label>
+                  <input id="si-code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={siCode} onChange={e=>setSiCode(e.target.value)} placeholder="Six-digit code"/>
+                  <span className="auth-forgot">Password recovery is not enabled.</span>
                 </div>
 
                 <button type="submit" className="auth-submit-btn">

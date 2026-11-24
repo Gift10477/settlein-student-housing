@@ -17,8 +17,8 @@
  *   onView     — fn(id) navigate to detail view
  *   onToast    — fn(message) show toast
  */
-import React, { useState } from 'react';
-import { toggleSaved, isSaved } from '../../services/api';
+import { useState } from 'react';
+import { toggleSaved, isSaved } from '../../services/database';
 
 function HeartIcon({ filled }) {
   return (

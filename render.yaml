@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: settlein-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --prefix server --omit=dev
+    startCommand: cd server && npm run db:prepare && npm start
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    disk:
+      name: listing-photos
+      mountPath: /var/data/uploads
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 1
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: CORS_ORIGINS
+        value: https://gift10477.github.io
+      - key: DB_SSL
+        value: true
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL_CA
+        sync: false
+      - key: SECURITY_KEY
+        sync: false

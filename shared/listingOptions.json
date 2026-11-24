@@ -1,0 +1,6 @@
+{
+  "amenities": ["Wi-Fi", "CCTV", "Borehole", "Parking", "Gym", "Hot Shower", "Balcony", "Laundry", "Security", "Backup Generator", "Study Desk"],
+  "genderPolicies": ["Mixed", "Female-only", "Male-only"],
+  "furnishingStatuses": ["Furnished", "Unfurnished", "Semi-furnished"],
+  "roomTypes": ["Bedsitter", "Hostel Room", "Shared Apartment", "Studio", "1 Bedroom"]
+}

@@ -15,9 +15,9 @@
  *   onApply   — fn() trigger the search
  *   onClear   — fn() reset all filters
  */
-import React from 'react';
+import options from '../../../../shared/listingOptions.json';
 
-export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
+export default function FilterSidebar({ filters, onChange, onClear }) {
   /** Toggle an amenity on/off in the amenities array */
   const toggleAmenity = (amenity) => {
     const current = filters.amenities ?? [];
@@ -65,10 +65,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
           onChange={e => onChange({ ...filters, type: e.target.value })}
         >
           <option value="all">All Types</option>
-          <option value="bedsitter">Bedsitter</option>
-          <option value="hostel">Hostel Room</option>
-          <option value="shared">Shared Apartment</option>
-          <option value="studio">Studio</option>
+          {options.roomTypes.map(type => <option key={type} value={type}>{type}</option>)}
         </select>
       </div>
 
@@ -97,7 +94,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
         >
           <option value="all">Any</option>
           <option value="Furnished">Furnished</option>
-          <option value="Unfurnished">Unfurnished</option>
+          <option value="Unfurnished">Unfurnished</option><option value="Semi-furnished">Semi-furnished</option>
         </select>
       </div>
 
@@ -124,7 +121,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
       <div className="filter-group">
         <span className="filter-label">Amenities</span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {['Wi-Fi', 'CCTV', 'Borehole', 'Parking', 'Gym'].map(amenity => (
+          {options.amenities.map(amenity => (
             <label
               key={amenity}
               className={`toggle-label${isAmenityOn(amenity) ? ' toggle-label--active' : ''}`}
@@ -158,10 +155,7 @@ export default function FilterSidebar({ filters, onChange, onApply, onClear }) {
         </label>
       </div>
 
-      {/* Apply button */}
-      <button className="btn btn--full" style={{ marginTop: '1rem' }} onClick={onApply}>
-        Apply Filters
-      </button>
+      <p style={{ marginTop: '1rem' }}>Filters update results automatically. Listings must include all selected amenities.</p>
     </aside>
   );
 }

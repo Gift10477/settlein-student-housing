@@ -14,9 +14,9 @@
  *  'auth'     — Sign in / Create account
  *  'landlord' — Landlord submission form
  */
-import React, { useState, useEffect, useCallback } from 'react';
-/* ── API assignment ── */
-import StudentsTable from './StudentsTable';
+import { useState, useEffect, useCallback } from 'react';
+import AdminView from './components/admin/AdminDashboard';
+import ReservationsView from './components/admin/ReservationsView';
 /* ── Styles ── */
 import './styles/index.css';
 import './styles/pages.css';
@@ -25,7 +25,7 @@ import './styles/pages.css';
 import { useTheme } from './hooks/useTheme';
 
 /* ── Data & Auth ── */
-import { getCurrentUser, logoutUser } from './services/api';
+import { getCurrentUser, logoutUser } from './services/database';
 
 /* ── Layout components ── */
 import SplashScreen from './components/layout/SplashScreen';
@@ -42,9 +42,11 @@ import LandlordCTA from './components/home/LandlordCTA';
 import ListingsView from './components/listings/ListingsView';
 import DetailView from './components/detail/DetailView';
 import AuthView from './components/auth/AuthView';
-import LandlordView from './components/landlord/LandlordView';
+import LandlordView from './components/landlord/LandlordPortal';
 import AboutView from './components/pages/AboutView';
 import ContactView from './components/pages/ContactView';
+import AccountView from './components/pages/AccountView';
+import HelpView from './components/pages/HelpView';
 
 /** How long (ms) the splash screen stays visible on load */
 const SPLASH_DURATION = 2000;
@@ -68,7 +70,7 @@ export default function App() {
   const [initialCampus, setInitialCampus] = useState('all');
 
   /* ── Auth ── */
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser);
   /** Property ID the guest was trying to view before we sent them to auth */
   const [pendingPropId, setPendingPropId] = useState(null);
 
@@ -80,7 +82,6 @@ export default function App() {
    * Initialisation — check active session and dismiss splash
    * ───────────────────────────────────────────────── */
   useEffect(() => {
-    setCurrentUser(getCurrentUser());
     const t = setTimeout(() => setSplashLoaded(true), SPLASH_DURATION);
     return () => clearTimeout(t);
   }, []);
@@ -163,6 +164,10 @@ export default function App() {
 
       {/* ── View Router — render the active view ── */}
       <main id="app-root">
+        {activeView === 'help' && <HelpView onNavigate={navigate}/>}
+        {activeView === 'account' && currentUser && <AccountView user={currentUser} onUpdated={setCurrentUser} onLogout={handleLogout}/>}
+        {activeView === 'admin' && (currentUser?.role === 'admin' ? <AdminView /> : <p className="management">Sign in with an administrator account.</p>)}
+        {activeView === 'reservations' && (currentUser ? <ReservationsView /> : <p className="management">Sign in to view reservations.</p>)}
 
         {/* Home — 3 blocks stacked */}
         {activeView === 'home' && (
@@ -171,7 +176,7 @@ export default function App() {
             <StatsBar />
             <FeaturedGrid onView={viewDetail} onNavigate={(v) => navigate(v)} onToast={showToast} />
             <WhyChooseUs />
-            <LandlordCTA onNavigate={(v) => navigate(v)} />
+            {currentUser?.role === 'landlord' && <LandlordCTA onNavigate={(v) => navigate(v)} />}
           </>
         )}
 
@@ -186,7 +191,7 @@ export default function App() {
 
         {/* Single property detail */}
         {activeView === 'detail' && activePropId && (
-          <DetailView
+          <DetailView key={activePropId}
             propId={activePropId}
             onBack={() => navigate('listings')}
             onToast={showToast}
@@ -206,13 +211,13 @@ export default function App() {
                 const id = pendingPropId;
                 setPendingPropId(null);
                 navigate('detail', id);
-              }
+              } else navigate('home');
             }}
           />
         )}
 
         {/* Landlord portal */}
-        {activeView === 'landlord' && (
+        {activeView === 'landlord' && currentUser?.role === 'landlord' && (
           <LandlordView onToast={showToast} />
         )}
 
@@ -228,7 +233,7 @@ export default function App() {
       </main>
 
       {/* Site-wide footer */}
-      <Footer onNavigate={(v) => navigate(v)} />
+      <Footer currentUser={currentUser} onNavigate={(v) => navigate(v)} />
 
       {/* ── Toast notification (bottom-right / bottom-centre on mobile) ── */}
       {toast && (

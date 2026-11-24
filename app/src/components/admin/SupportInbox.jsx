@@ -1,0 +1,8 @@
+import { useEffect, useState } from 'react';
+import { managementRequest } from '../../services/database';
+export default function SupportInbox() {
+  const [rows,setRows]=useState([]),[error,setError]=useState(''),[query,setQuery]=useState(''),[busy,setBusy]=useState(false);
+  useEffect(()=>{managementRequest('/community/messages').then(setRows).catch(err=>setError(err.message));},[]);
+  async function update(row){setBusy(true);setError('');try{await managementRequest('/community/messages/'+row.id,'PATCH',{status:row.status==='open'?'resolved':'open'});setRows(await managementRequest('/community/messages'));}catch(err){setError(err.message);}finally{setBusy(false);}}
+  return <div><h2>Support inbox</h2>{error&&<p role="alert">{error}</p>}<label>Search messages<input type="search" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="portal-records">{rows.filter(row=>Object.values(row).join(' ').toLowerCase().includes(query.toLowerCase())).map(row=><article className="portal-record" key={row.id}><div className="record-summary"><div className="record-main"><h3>{row.subject}</h3><p>{row.name} · {row.email}</p></div><span className="portal-badge">{row.status}</span><time>{new Date(row.created_at).toLocaleString()}</time><button disabled={busy} onClick={()=>update(row)}>{row.status==='open'?'Mark resolved':'Reopen'}</button></div><details><summary>Read message</summary><p style={{whiteSpace:'pre-wrap'}}>{row.message}</p><p>Reply using your support email client, then mark resolved.</p></details></article>)}</div>{!rows.length&&<p>No support messages yet.</p>}</div>;
+}

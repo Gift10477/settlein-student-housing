@@ -1,75 +1,31 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
-
 const path = require('path');
-const { requireApiKey } = require('./middleware/auth');
-const { rateLimit } = require('./middleware/rateLimit');
-
+require('dotenv').config();
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors());
 app.disable('x-powered-by');
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
+const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:4173').split(',').map(v => v.trim());
+app.use(cors({ origin(origin, callback) { callback(null, !origin || origins.includes(origin)); } }));
+app.use(require('./middleware/security').headers);
+app.use(express.json({ limit: '7mb' }));
+app.use((req,res,next)=>{
+  if(req.body===undefined)req.body={};
+  if(req.body===null||Array.isArray(req.body)||typeof req.body!=='object')return res.status(400).json({error:'Request data must be a JSON object.'});
+  next();
+});
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-app.use(express.json());
-app.use(requireApiKey);
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requests per API key per 15 minutes
-
-// API health check
-app.get('/', (req, res) => {
-  res.send('SettleIn Student Housing API (XAMPP MySQL) is running');
+app.use('/data/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, 'uploads'), { dotfiles: 'deny', index: false }));
+app.get('/health', async (req, res) => { try { await require('./db').query('SELECT 1'); res.json({ status: 'ok' }); } catch { res.status(503).json({ status: 'unavailable' }); } });
+app.use('/data/security', require('./data/security'));
+app.use('/data/community', require('./data/community'));
+app.use('/data/users', require('./data/users'));
+app.use('/data/properties', require('./data/properties'));
+app.use('/data/bookings', require('./data/bookings'));
+app.use('/data/admin', require('./data/admin'));
+app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
+app.use((error, req, res, next) => {
+  const status = error.type === 'entity.too.large' ? 413 : error instanceof SyntaxError && error.status === 400 ? 400 : 500;
+  res.status(status).json({ error: status === 413 ? 'File too large.' : status === 400 ? 'Invalid request.' : 'Unable to complete the database operation.' });
 });
-
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/healthz', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Serve browsable API documentation and raw OpenAPI contract
-app.use('/docs', express.static(path.join(__dirname, '../docs')));
-app.get('/openapi.yaml', (req, res) => {
-  res.sendFile(path.join(__dirname, '../openapi.yaml'));
-});
-
-// Mount Routes
-app.use('/api/market-prices', require('./routes/marketPrices'));
-app.use('/api/v1/market-prices', require('./routes/marketPrices'));
-app.use('/api/properties', require('./routes/properties'));
-app.use('/api/v1/properties', require('./routes/properties'));
-app.use('/api/users', require('./routes/user'));
-app.use('/api/v1/users', require('./routes/user'));
-app.use('/api/bookings', require('./routes/bookings'));
-app.use('/api/v1/bookings', require('./routes/bookings'));
-
-app.use((req, res) => res.status(404).json({ error: 'Not Found' }));
-
-// Global error handler: ensures error responses return consistent JSON format
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'Invalid JSON payload. Please check your request body syntax.',
-      status_code: 400,
-      timestamp: new Date().toISOString()
-    });
-  }
-  const status = err.type === 'entity.too.large' ? 413 : 500;
-  return res.status(status).json({
-    error: status === 413 ? 'Payload Too Large' : 'Internal Server Error',
-    message: status === 413 ? 'Request body is too large.' : 'An unexpected server error occurred.',
-    status_code: status,
-    timestamp: new Date().toISOString()
-  });
-});
-
 module.exports = app;
